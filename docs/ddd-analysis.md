@@ -108,11 +108,12 @@
 - **Actor:** Household Member
 - **Trigger:** User clicks "Add Transaction"
 - **Flow:**
-  1. User enters: date, amount, account, user (which household member), comment
-  2. User selects or creates a category
-  3. (Optional) User splits amount across multiple categories
-  4. (Optional) User attaches a receipt photo
-  5. System saves the transaction
+  1. User selects transaction type: **Income** or **Expense**
+  2. User enters: date (defaults to today, any past date allowed), amount (always positive), account, user (which household member), comment
+  3. User selects or creates a category
+  4. (Optional) User splits amount across multiple categories
+  5. (Optional) User attaches a receipt photo
+  6. System saves the transaction
 - **Outcome:** Transaction appears in the list; dashboard/reports update
 - **Command:** `RecordTransaction`
 
@@ -134,20 +135,23 @@
 - **Flow:**
   1. User clicks "Split"
   2. User defines 2+ category–amount pairs (must sum to original amount)
-  3. System validates the total matches
-  4. System saves the splits
-- **Outcome:** Transaction is linked to multiple categories
-- **Command:** `SplitTransaction`
+  3. Duplicate categories are allowed (two splits with the same category are not auto-merged)
+  4. System validates the total matches
+  5. System saves the splits
+  6. User can also **unsplit** — remove all splits and reassign the full amount to one category
+- **Outcome:** Transaction is linked to multiple categories (or reverted to one)
+- **Command:** `SplitTransaction`, `UnsplitTransaction`
 
 ### UC-4: Filter & Browse Transactions
 - **Actor:** Household Member
 - **Trigger:** User opens the transaction list
 - **Flow:**
-  1. User sets filter criteria (date range, user, category, account, amount range)
-  2. System returns matching transactions
-  3. System shows the sum of filtered amounts at the bottom
-- **Outcome:** Filtered view with total
-- **Query:** `GetFilteredTransactions`
+  1. Page loads with **default filter: current month**
+  2. User can adjust filter criteria (date range, user, category, account, amount range, type)
+  3. System returns matching transactions via **virtual scroll** (windowed rendering, cursor-based pagination under the hood)
+  4. **Sticky summary footer** shows three values: **total income, total expenses, and net** (income − expenses) for the entire filtered set
+- **Outcome:** Filtered view with income/expense/net totals
+- **Query:** `GetFilteredTransactions`, `GetFilteredTransactionsSummary`
 
 ### UC-5: Manage Categories
 - **Actor:** Household Member
@@ -166,9 +170,10 @@
   2. Login: credentials or Google
   3. System issues a session/token
   4. If first user → system creates a new Household and adds this member
-  5. If invited → system adds the user to the existing Household
+  5. System offers **default categories** (18 expense + 5 income, Polish household set) — user can keep all, customize (modify/delete some), or start empty
+  6. If invited → system adds the user to the existing Household
 - **Outcome:** Authenticated user with full access to their household
-- **Command:** `RegisterUser`, `AuthenticateUser`
+- **Command:** `RegisterUser`, `AuthenticateUser`, `SeedDefaultCategories`
 
 ### UC-7: View Reports
 - **Actor:** Household Member
@@ -178,8 +183,10 @@
   2. User selects parameters (period, category, user)
   3. System aggregates data and renders charts/tables
   4. System indicates if savings occurred (receipts > expenses)
-- **Outcome:** Visual report
+  5. User can **export to PDF or CSV**
+- **Outcome:** Visual report with optional download
 - **Query:** `GenerateReport`
+- **Command:** `ExportReport`
 
 ### UC-8: Set & Track a Budget
 - **Actor:** Household Member
@@ -218,8 +225,10 @@
 - **Actor:** Household Member
 - **Trigger:** User opens the app
 - **Flow:**
-  1. System shows: pie chart of top expense categories, monthly balance, total expenses, total receipts, budget status, account summary
-  2. User can add/remove custom widgets (text, image, chosen report)
+  1. System shows dashboard for **current month by default** (user can select any month): pie chart of top expense categories, monthly balance, total expenses, total receipts, budget status, account summary
+  2. Dashboard **refreshes in real-time** after each save (transaction add/edit/split/categorize)
+  3. Aggregates are **calculated on the fly** for MVP (optimize later if needed)
+  4. User can add/remove custom widgets (text, image, chosen report)
 - **Outcome:** At-a-glance financial snapshot
 - **Query:** `GetDashboard`
 
@@ -277,11 +286,11 @@
 ### Process 1: Transaction Recording Flow
 
 ```
-User fills form → Validate input → Save Transaction → Update Account Balance
+User fills form (selects type: Income/Expense) → Validate input → Save Transaction → Update Account Balance
                                   → (optional) Split into categories
                                   → (optional) Attach receipt
                                   → Emit event: TransactionRecorded
-                                  → Update Dashboard Cache
+                                  → Update Dashboard Cache (real-time)
                                   → Check Budget thresholds
                                       → If exceeded → Emit: BudgetExceeded → Send Alert
 ```
@@ -419,12 +428,13 @@ End of month (or on-demand)
 
 | Concept | Type | Description |
 |---------|------|-------------|
-| **Transaction** | **Aggregate Root (Entity)** | A single financial event. Has a unique ID, date, total amount, account, user, comment. Controls its Splits. |
+| **Transaction** | **Aggregate Root (Entity)** | A single financial event. Has a unique ID, **type** (Income or Expense), date, total amount (always positive), account, user, comment. Controls its Splits. |
 | **TransactionSplit** | Entity (inside Transaction aggregate) | One portion of a split transaction — links a sub-amount to a category. Identity matters because you edit/delete specific splits. |
 | **Money** | Value Object | Amount + Currency (e.g., 150.00 PLN). Immutable — you don't change a Money, you create a new one. Two `Money(150, PLN)` are equal. |
 | **Category** | Aggregate Root (Entity) | A user-defined expense/income label (e.g., "Groceries", "Rent"). Has a unique ID, name, icon, color. |
 | **Account** | Aggregate Root (Entity) | A bank account or cash wallet. Has ID, name, currency, current balance. |
 | **Receipt** | Entity (inside Transaction aggregate) | An attached photo/scan of a paper receipt. Stored as a file reference. |
+| **TransactionType** | Value Object | Either `Income` or `Expense`. Determines the meaning of the amount — always positive, direction determined by type. |
 
 **Key Rule (Invariant):**
 > The sum of all `TransactionSplit` amounts must equal the `Transaction` total amount.
@@ -434,8 +444,8 @@ End of month (or on-demand)
 | Concept | Type | Description |
 |---------|------|-------------|
 | **User** | Aggregate Root (Entity) | A person using the app. Has ID, email, auth method, display name. Every user is a full and equal member of their Household — there are no restricted roles. |
-| **Household** | Aggregate Root (Entity) | A group of users sharing finances equally. Has ID, name, main currency, list of member references. All members have identical permissions. |
-| **Invitation** | Entity | A pending invite for someone to join a Household. Has ID, inviter reference, invitee email, status (pending/accepted/expired). Any member can invite others. |
+| **Household** | Aggregate Root (Entity) | A group of users sharing finances equally. Has ID, name, main currency, list of member references. All members have identical permissions. **Data model uses a junction table `user_households` to support multi-household in the future**, but MVP launches with single-household UX (no switcher). All APIs are scoped with explicit `householdId`. |
+| **Invitation** | Entity | A pending invite for someone to join a Household. Has ID, inviter reference, invitee email, status (pending/accepted/expired/revoked), **expiry: 7 days**. Single-use token. Inviter can resend (new token, old invalidated) or revoke. Any member can invite others. |
 | **AuthCredentials** | Value Object | Password hash or Google OAuth token. Never stored as plain text. |
 
 #### Bounded Context: Budgeting
@@ -561,6 +571,7 @@ End of month (or on-demand)
 | Term | Definition |
 |------|------------|
 | **Transaction** | A single financial event — money in or money out of an Account |
+| **TransactionType** | Either `Income` (money in) or `Expense` (money out). Amount is always positive; the type determines direction |
 | **Split** | A portion of a Transaction assigned to a specific Category |
 | **Category** | A user-defined label for classifying expenses or income (e.g., "Groceries") |
 | **Account** | A financial container — bank account, cash wallet, or savings account |
