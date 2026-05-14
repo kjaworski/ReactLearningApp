@@ -244,6 +244,16 @@
 - **Outcome:** Retirement projection with actionable numbers
 - **Query:** `ForecastRetirement`
 
+### UC-14: Track Bank Promotion Requirements
+- **Actor:** Household Member
+- **Trigger:** User adds a bank promotion
+- **Flow:**
+  1. User enters: promotion name, conditions (e.g., 5 card transactions/month), link to promo page, link to T&C
+  2. System checks each month if conditions are met based on transaction data
+  3. System sends monthly reminders
+- **Outcome:** Promotion compliance tracking
+- **Command:** `RegisterPromotion`
+
 ### UC-15: Import Transaction from Receipt
 - **Actor:** Household Member
 - **Trigger:** User clicks "Scan Receipt" or uploads a photo/file
@@ -256,16 +266,6 @@
   6. User confirms → system saves the transaction with the receipt attached
 - **Outcome:** A new transaction is created from the receipt; the original image is stored as an attachment
 - **Command:** `ExtractReceiptData`, `ConfirmReceiptTransaction`
-
-### UC-14: Track Bank Promotion Requirements
-- **Actor:** Household Member
-- **Trigger:** User adds a bank promotion
-- **Flow:**
-  1. User enters: promotion name, conditions (e.g., 5 card transactions/month), link to promo page, link to T&C
-  2. System checks each month if conditions are met based on transaction data
-  3. System sends monthly reminders
-- **Outcome:** Promotion compliance tracking
-- **Command:** `RegisterPromotion`
 
 ---
 
