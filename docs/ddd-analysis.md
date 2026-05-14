@@ -21,6 +21,7 @@
 | 4 | Filter transactions (by user, date, category, account, amount) | Useless data without the ability to find things |
 | 5 | Sum of filtered transactions | Immediate insight |
 | 7 | User registration & login (password + Google) | Security & multi-user support |
+| 7.a | Invite household members (7-day expiry, single-use, revocable) | Shared household requires inviting a partner/family from day one |
 | 8 | Basic reports: monthly statement, category summary | Minimum actionable insight |
 | 16 | Simple dashboard: pie chart of expenses, balance, total expenses/receipts | The "home screen" that gives a snapshot |
 | 13 | Dark/light mode | Low effort, high perceived quality |
@@ -577,6 +578,23 @@ End of month (or on-demand)
 | `NetWorthRecalculated` | Wealth Management | Reporting | Update net worth dashboard and history graph |
 | **Reporting & Analytics** | | | |
 | `BalanceSnapshotTaken` | Reporting | — | Update savings graph (monthly data point) |
+| **Transaction Management (lifecycle)** | | | |
+| `CategoryRenamed` | Transaction Management | Reporting | Update category labels in read models |
+| `CategoryDeleted` | Transaction Management | Reporting | Remove category from lists and aggregations |
+| `CategoriesReordered` | Transaction Management | Reporting | Update display order in category lists |
+| `AccountRenamed` | Transaction Management | Reporting | Update account labels in read models |
+| `AccountDeactivated` | Transaction Management | Reporting | Remove account from active lists; historical data preserved |
+| `UncategorizedTransactionCreated` | Transaction Management | — | Triggers login prompt for user to categorize |
+| **Budgeting (lifecycle)** | | | |
+| `BudgetAlertSent` | Budgeting (via Notification) | — | Terminal event — notification delivered |
+| **Currency Exchange (lifecycle)** | | | |
+| `ExchangeRateFetched` | Currency Exchange | Reporting | Initial rate fetched when a new foreign-currency account is created |
+| **Promotion Tracking (lifecycle)** | | | |
+| `PromotionRegistered` | Promotion Tracking | — | Schedule monthly compliance evaluations |
+| `PromotionComplianceEvaluated` | Promotion Tracking | — | Update compliance read model for the month |
+| **Wealth Management (lifecycle)** | | | |
+| `NetWorthGoalSet` | Wealth Management | Reporting | Update net worth dashboard with goal and gap |
+| `AssetUpdateReminderSent` | Wealth Management (via Notification) | — | Terminal event — monthly reminder delivered |
 
 ---
 
