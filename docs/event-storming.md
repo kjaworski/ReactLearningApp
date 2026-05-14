@@ -737,6 +737,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ├─► 🟦 RenameCategory ──► 🟩 Category ──► 🟧 CategoryRenamed
 ├─► 🟦 DeleteCategory ──► 🟩 Category ──► 🟧 CategoryDeleted
 │       (❓ Rule: reject if transactions exist — user must reassign first)
+├─► 🟦 ReorderCategories ──► 🟩 Category ──► 🟧 CategoriesReordered
 │
 ├─► 🟦 AddAccount ──► 🟩 Account ──► 🟧 AccountCreated
 │        (name, currency)                   │
@@ -764,7 +765,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 └─► 🟦 SetBudget ──► 🟩 Budget ──► 🟧 BudgetSet
          (categoryId, month, limit, projectedReceipts)
 
-🟧 TransactionRecorded / TransactionCategorized / TransactionSplit
+🟧 TransactionRecorded / TransactionCategorized / TransactionSplit / TransactionUnsplit
   → 🟪 CheckBudget (categoryId, month)
       → 🟩 Budget
         → IF actual ≥ limit:
@@ -957,3 +958,4 @@ cross-cutting UI and platform concerns. Included here for traceability.
 | HS-32 | Retirement: inflation & return rate assumptions | Wealth Management | Phase 4 | |
 | HS-33 | AI forecasting: simple average vs. ML model? | Budgeting | Phase 4 | |
 | HS-34 | Delete category with existing transactions — reject or force reassignment? | Transaction Management | MVP | ✅ **Reject deletion.** User must reassign all transactions to another category first. System enforces "no orphaned transactions" invariant. |
+| HS-35 | What if a promotion spans multiple accounts? | Promotion Tracking | Phase 3 | |
