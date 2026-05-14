@@ -98,31 +98,28 @@ See how my savings are going month by month.
 4. Total receipts in a given month
 5. Budgets
 6. Summary of accounts
-7. Ability to add a report of your choice
-8. Ability to add a widget with your own text or image
+7. Custom widgets (text, image, chosen report)
 
-## 17. Receipt Attachment & Import
+## 17. Receipt Management
 
-1. Add photo/scan of receipt for selected transactions
-2. Import transaction from uploaded receipt (OCR)
+1. Attach a photo or scan of a receipt to any transaction
+2. Import a transaction by uploading a receipt — OCR/AI extracts date, amount, and merchant; user reviews and confirms
 
-## 18. Bank Promotion Requirements
+## 18. Bank Promotion Tracking
 
-1. List of conditions to be met every month
-2. Link to the blog/promotion page
-3. Link to terms and conditions
-4. Reminders every month
+1. Register a bank promotion with conditions (e.g., 5 card transactions/month, minimum spend)
+2. System evaluates conditions monthly against transaction data
+3. Alerts when conditions are unmet; monthly reminders of conditions to meet
 
-## 19. Assets and Encumbrances
+## 19. Assets & Encumbrances (Net Worth)
 
-1. Assets e.g. time value of apartment, car, financial instruments, investments, other valuable things
-2. Encumbrances e.g. mortgage, installment loan
-3. Counting net worth
-4. The net worth goal I would like to achieve
-5. Reminders to update the value of assets
+1. Record assets (apartment, car, investments) with estimated value
+2. Record encumbrances (mortgage, loans) with remaining balance
+3. Net worth = total assets − total encumbrances
+4. Set a net worth goal
+5. Monthly reminders to update asset values
 
 ## 20. Retirement Forecasting
 
-1. How much money do I need to put away so that at age X I have Y zlotys every month
-2. How many years do I have to work so that, with my current earnings, I have an amount of X zloty in retirement
-3. What amount I can count on in retirement with my current earnings if I retire at age X
+1. Enter current age, target retirement age, desired monthly income, current savings
+2. System calculates scenarios: how much to save, how long to work, projected pension

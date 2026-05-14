@@ -13,7 +13,7 @@
 │                                                                  │
 │  apps/                                                           │
 │  ├── web/          Next.js 15 (App Router)     ← Frontend       │
-│  └── api/          NestJS 11                   ← Backend API    │
+│  └── api/          NestJS 10+ (latest stable)  ← Backend API    │
 │                                                                  │
 │  packages/                                                       │
 │  └── shared/       Shared TypeScript types     ← DTOs, enums    │
@@ -56,13 +56,13 @@
 
 | Category | Choice | Why |
 |----------|--------|-----|
-| **Framework** | **NestJS 11** | Modular architecture maps 1:1 to bounded contexts. Built-in DI, CQRS module, guards (like .NET `[Authorize]`), pipes (like .NET model validation). Feels like ASP.NET Core. |
+| **Framework** | **NestJS 10+** (latest stable) | Modular architecture maps 1:1 to bounded contexts. Built-in DI, CQRS module, guards (like .NET `[Authorize]`), pipes (like .NET model validation). Feels like ASP.NET Core. |
 | **Language** | **TypeScript** | Shared types with frontend |
 | **Database** | **PostgreSQL 16** | Relational integrity for financial data. JSONB for semi-structured data (OCR results, bank imports, promotion rules). Industry standard for fintech. |
 | **ORM** | **Prisma** | Type-safe auto-generated client, declarative schema, easy migrations, great DX. Most popular TypeScript ORM. |
 | **Auth (backend)** | **Passport.js + JWT** (`@nestjs/passport`, `@nestjs/jwt`) | Validates JWT tokens issued by NextAuth.js. `JwtAuthGuard` = equivalent of .NET `[Authorize]`. |
 | **Validation** | **class-validator + class-transformer** | Decorator-based DTO validation (like .NET `[Required]`, `[MaxLength]`). NestJS pipes auto-validate. |
-| **CQRS** | **@nestjs/cqrs** | Separate command/query handlers per bounded context. Events bus for cross-context communication. |
+| **CQRS** | **@nestjs/cqrs** | Separate command/query handlers per bounded context. Events bus for cross-context communication. **Note:** the event bus is in-memory — works for a single instance. For multi-instance deployment (ECS Fargate with multiple tasks), add an external event bus (e.g., Redis pub/sub or Amazon SNS/SQS) later. |
 | **API style** | **REST** | Standard for job market. OpenAPI/Swagger via `@nestjs/swagger` for auto-generated docs. |
 | **Logging** | **Pino** (via `nestjs-pino`) | Structured JSON logging, fast, production-ready |
 
@@ -72,6 +72,8 @@
 |----------|--------|-----|
 | **Shared types** | TypeScript interfaces/enums | DTOs, TransactionType, BudgetStatus, etc. — used by both frontend and backend |
 | **Validation schemas** | **Zod** | Shared validation schemas (frontend forms + backend API validation) |
+
+> ⚠️ **Validation note:** Backend uses `class-validator` decorators on NestJS DTOs while `packages/shared/` uses Zod schemas for frontend forms. This means validation rules are defined in two systems. To mitigate: define canonical Zod schemas in `shared/`, and either (a) use `nestjs-zod` on the backend to replace class-validator, or (b) auto-generate one from the other. Decide during implementation.
 
 ### Infrastructure & Tooling
 
@@ -140,8 +142,8 @@ Only these modules are needed for MVP:
 
 | Module | MVP scope |
 |--------|-----------|
-| `identity` | Register, login (Google + password), create household, seed default categories, invite member |
-| `transaction` | Record transaction (Income/Expense), split, unsplit, manage categories, manage accounts |
+| `identity` | Register, login (Google + password), create household, seed default categories, create default account, invite member |
+| `transaction` | Record transaction (Income/Expense), split, unsplit, manage categories, manage accounts (add, rename, deactivate) |
 | `reporting` | Dashboard (current month, selectable), basic reports (monthly, category), PDF/CSV export |
 
 Modules added in later phases:
@@ -189,7 +191,7 @@ Modules added in later phases:
 next, react, react-dom
 @auth/core, next-auth          ← Auth
 @tanstack/react-query          ← Server state
-tailwindcss, @tailwindcss/vite ← Styling
+tailwindcss, @tailwindcss/postcss ← Styling (PostCSS plugin for Next.js; @tailwindcss/vite is for Vite-only projects)
 zod, react-hook-form, @hookform/resolvers ← Forms
 @tanstack/react-virtual        ← Virtual scroll
 recharts                       ← Charts

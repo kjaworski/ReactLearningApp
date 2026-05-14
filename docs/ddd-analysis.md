@@ -16,6 +16,7 @@
 |---|---------|-----------------|
 | 1 | Manual transaction entry (date, amount, category, user, comment, account) | The fundamental action — without it nothing works |
 | 6 | Custom expense categories | Users need their own taxonomy from day one |
+| 17.a | Manage accounts (create, rename, deactivate; default account on setup) | Every transaction needs an account — must exist before first entry |
 | 3 | Split transaction across categories | Common real-world scenario (supermarket receipt = groceries + cleaning supplies) |
 | 4 | Filter transactions (by user, date, category, account, amount) | Useless data without the ability to find things |
 | 5 | Sum of filtered transactions | Immediate insight |
@@ -158,7 +159,7 @@
 - **Trigger:** User opens category settings
 - **Flow:**
   1. User creates / renames / deletes / reorders categories
-  2. System validates no orphaned transactions exist before deletion
+  2. System rejects deletion if transactions exist — user must reassign them to another category first
 - **Outcome:** Updated category list
 - **Command:** `CreateCategory`, `RenameCategory`, `DeleteCategory`
 
@@ -170,10 +171,11 @@
   2. Login: credentials or Google
   3. System issues a session/token
   4. If first user → system creates a new Household and adds this member
-  5. System offers **default categories** (18 expense + 5 income, Polish household set) — user can keep all, customize (modify/delete some), or start empty
-  6. If invited → system adds the user to the existing Household
+  5. System auto-creates a default account ("Gotówka" / Cash, in main currency)
+  6. System offers **default categories** (18 expense + 5 income, Polish household set) — user can keep all, customize (modify/delete some), or start empty
+  7. If invited → system adds the user to the existing Household
 - **Outcome:** Authenticated user with full access to their household
-- **Command:** `RegisterUser`, `AuthenticateUser`, `SeedDefaultCategories`
+- **Command:** `RegisterUser`, `AuthenticateUser`, `SeedDefaultCategories`, `CreateDefaultAccount`
 
 ### UC-7: View Reports
 - **Actor:** Household Member
@@ -225,10 +227,10 @@
 - **Actor:** Household Member
 - **Trigger:** User opens the app
 - **Flow:**
-  1. System shows dashboard for **current month by default** (user can select any month): pie chart of top expense categories, monthly balance, total expenses, total receipts, budget status, account summary
+  1. System shows dashboard for **current month by default** (user can select any month): pie chart of top expense categories, monthly balance, total expenses, total receipts, budget status (shown only when budgets exist — Phase 2+), account summary
   2. Dashboard **refreshes in real-time** after each save (transaction add/edit/split/categorize)
   3. Aggregates are **calculated on the fly** for MVP (optimize later if needed)
-  4. User can add/remove custom widgets (text, image, chosen report)
+  4. (Phase 4) User can add/remove custom dashboard widgets (text, image, chosen report)
 - **Outcome:** At-a-glance financial snapshot
 - **Query:** `GetDashboard`
 
@@ -275,6 +277,29 @@
   6. User confirms → system saves the transaction with the receipt attached
 - **Outcome:** A new transaction is created from the receipt; the original image is stored as an attachment
 - **Command:** `ExtractReceiptData`, `ConfirmReceiptTransaction`
+
+### UC-16: Invite a Household Member
+- **Actor:** Household Member
+- **Trigger:** User clicks "Invite Member"
+- **Flow:**
+  1. User enters the invitee's email address
+  2. System creates a single-use invitation token (expires in 7 days)
+  3. System sends an invitation email
+  4. Invitee clicks the link → registers (if new) or joins the household (if existing user)
+  5. Inviter can resend (generates new token, invalidates old) or revoke at any time
+- **Outcome:** New member joins the household with equal access
+- **Command:** `InviteMember`, `AcceptInvitation`, `RevokeInvitation`
+
+### UC-17: Manage Accounts
+- **Actor:** Household Member (or System during household setup)
+- **Trigger:** User opens account settings, or household is created
+- **Flow:**
+  1. On household creation, system auto-creates a default account ("Gotówka" / Cash, in the household's main currency)
+  2. User can add accounts (name, currency, initial balance)
+  3. User can rename or deactivate accounts
+  4. Deactivation is soft — historical transactions remain linked
+- **Outcome:** Account list available for recording transactions
+- **Command:** `AddAccount`, `RenameAccount`, `DeactivateAccount`
 
 ---
 
@@ -402,8 +427,8 @@ End of month (or on-demand)
 │  │                  │  │                  │  │                  │  │
 │  │  • Report        │  │  • Subscription  │  │  • BankConnection│  │
 │  │  • Dashboard     │  │  • Reminder      │  │  • ImportBatch   │  │
-│  │  • Widget        │  │  • PaymentCheck  │  │  • RawTransaction│  │
-│  │  • Chart         │  │                  │  │                  │  │
+│  │  • BalanceSnap.  │  │  • PaymentCheck  │  │  • RawTransaction│  │
+│  │  • ReportExport  │  │                  │  │                  │  │
 │  └──────────────────┘  └──────────────────┘  └──────────────────┘  │
 │                                                                     │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
@@ -499,6 +524,13 @@ End of month (or on-demand)
 | **PromotionCondition** | Entity (inside Promotion aggregate) | A single condition to meet (e.g., "≥5 card transactions/month"). |
 | **ComplianceStatus** | Value Object | For a given month: each condition marked as `Met` or `Unmet`. |
 
+#### Bounded Context: Reporting & Analytics
+
+| Concept | Type | Description |
+|---------|------|-------------|
+| **BalanceSnapshot** | Value Object | A point-in-time record of monthly savings: total income − total expenses for a given month. Stored monthly for the savings graph (Req 15). |
+| **ReportExport** | Value Object | A generated file (PDF or CSV) representing a report. Has format, data snapshot, and download URL. |
+
 ---
 
 ### 5.3 Domain Events
@@ -507,18 +539,44 @@ End of month (or on-demand)
 
 | Event | Produced by | Consumed by | What happens |
 |-------|-------------|-------------|--------------|
+| **Identity & Access** | | | |
+| `UserRegistered` | Identity & Access | Transaction Mgmt | Initialize user profile, seed default categories + default account |
+| `HouseholdCreated` | Identity & Access | Transaction Mgmt | Set up shared space, create default account and categories |
+| `MemberJoinedHousehold` | Identity & Access | — | Update household member list |
+| `InvitationSent` | Identity & Access | External (Email) | Deliver invitation email to invitee |
+| `InvitationAccepted` | Identity & Access | Identity & Access | Trigger registration (if new) + join household |
+| `UserLoggedIn` | Identity & Access | Transaction Mgmt | Check for uncategorized transactions → show prompt |
+| **Transaction Management** | | | |
 | `TransactionRecorded` | Transaction Management | Budgeting, Reporting, Promotion Tracking | Recalculate budget usage; update reports; check promotion conditions |
 | `TransactionCategorized` | Transaction Management | Budgeting, Reporting | Uncategorized imported transaction now has a category — update aggregations |
 | `TransactionSplit` | Transaction Management | Budgeting, Reporting | Split amounts update per-category calculations |
+| `TransactionUnsplit` | Transaction Management | Budgeting, Reporting | Reverted to single category — recalculate per-category totals |
+| `CategoryCreated` | Transaction Management | Reporting | Update category list read model |
+| `AccountCreated` | Transaction Management | Currency Exchange | If foreign currency → fetch exchange rate |
+| `ReceiptAttached` | Transaction Management | — | Update transaction detail read model (thumbnail) |
+| `ReceiptDataExtracted` | Transaction Mgmt (via OCR) | — | Create draft transaction for user review |
+| **Budgeting** | | | |
+| `BudgetSet` | Budgeting | Reporting | Update budget overview read model |
 | `BudgetExceeded` | Budgeting | Notification Service | Send alert to user |
+| `BudgetForecastGenerated` | Budgeting (via AI) | — | Show suggested budgets for next month |
+| **Bank Integration** | | | |
 | `TransactionsImported` | Bank Integration | Transaction Management | Create uncategorized transactions; prompt user on next login |
+| **Subscription Management** | | | |
+| `SubscriptionRegistered` | Subscription Management | — | Schedule payment reminders |
 | `SubscriptionPaymentDue` | Subscription Management | Notification Service | Send upcoming payment reminder |
 | `SubscriptionOverdue` | Subscription Management | Notification Service | Send overdue alert |
-| `ExchangeRatesUpdated` | Currency Exchange | Reporting, Wealth Management | Recalculate multi-currency totals |
-| `AssetValueUpdated` | Wealth Management | Reporting | Recalculate net worth, update graph |
+| **Currency Exchange** | | | |
+| `ExchangeRatesUpdated` | Currency Exchange | Transaction Mgmt, Reporting, Wealth Mgmt | Recalculate multi-currency totals |
+| **Promotion Tracking** | | | |
 | `PromotionConditionUnmet` | Promotion Tracking | Notification Service | Alert user about unmet conditions |
-| `UserRegistered` | Identity & Access | — | Initialize user profile, create default categories |
-| `HouseholdCreated` | Identity & Access | — | Set up shared space for members |
+| `PromotionReminderSent` | Promotion Tracking | — | Monthly reminder of conditions to meet |
+| **Wealth Management** | | | |
+| `AssetValueUpdated` | Wealth Management | Wealth Management, Reporting | Recalculate net worth, update graph |
+| `AssetRecorded` | Wealth Management | Wealth Management, Reporting | Initial asset creation — triggers net worth recalculation |
+| `EncumbranceRecorded` | Wealth Management | Wealth Management, Reporting | Initial encumbrance creation — triggers net worth recalculation |
+| `NetWorthRecalculated` | Wealth Management | Reporting | Update net worth dashboard and history graph |
+| **Reporting & Analytics** | | | |
+| `BalanceSnapshotTaken` | Reporting | — | Update savings graph (monthly data point) |
 
 ---
 
@@ -540,10 +598,10 @@ End of month (or on-demand)
    ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
    │ Transaction  │ │  Budgeting   │ │  Reporting   │
    │ Management   │─┤              │ │  & Analytics │
-   └──────┬───────┘ └──────────────┘ └──────────────┘
+   └──────┬───────┘ └──────────────┘ └──────┬───────┘
           │              ▲                    ▲
-          │ events       │ events             │ reads
-          ├──────────────┘                    │
+          │ events       │ events             │ reads from all
+          ├──────────────┘                    │ contexts below
           ├───────────────────────────────────┘
           │
    ┌──────┴───────┐
@@ -554,12 +612,21 @@ End of month (or on-demand)
    ┌──────────────┐        ┌──────────────┐
    │ Subscription │        │  Currency    │◄── ACL ──► Exchange Rate API
    │ Management   │        │  Exchange    │
-   └──────────────┘        └──────────────┘
+   │              │        │              │
+   │  reads txn   │        │  provides    │
+   │  data ───────┼────►   │  rates to ───┼──► Transaction Mgmt
+   │  (payment    │  Txn   │              │    Reporting, Wealth
+   │   matching)  │  Mgmt  └──────────────┘
+   └──────────────┘
 
    ┌──────────────┐        ┌──────────────┐
    │   Wealth     │        │  Promotion   │
    │ Management   │        │  Tracking    │
-   └──────────────┘        └──────────────┘
+   │              │        │              │
+   │  reads txn   │        │  reads txn   │
+   │  data ───────┼────►   │  data ───────┼──► Transaction Mgmt
+   │  (savings)   │  Txn   │  (compliance)│     (evaluate conditions)
+   └──────────────┘  Mgmt  └──────────────┘
 ```
 
 ---
@@ -587,8 +654,9 @@ End of month (or on-demand)
 | **Exchange Rate** | The conversion ratio between two currencies on a given date |
 | **Forecast** | A prediction of future expenses, receipts, or savings based on historical data |
 | **Invitation** | A pending request for a new User to join a Household; any member can send one |
-| **Main Currency** | The Household's primary currency, used for consolidated reporting |
-
+| **Main Currency** | The Household's primary currency, used for consolidated reporting || **Balance Snapshot** | A monthly record of total income minus total expenses, used for the savings graph |
+| **Report Export** | A generated file (PDF or CSV) representing a report, available for download |
+| **Default Account** | The “Gotówka” (Cash) account auto-created when a new Household is set up, in the household’s main currency |
 ---
 
 ### 5.6 Non-Functional Requirements

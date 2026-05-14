@@ -53,16 +53,23 @@
     → 🟩 Household
       → 🟧 MemberJoinedHousehold
 
-🗪 Policy: "When HouseholdCreated → OfferDefaultCategories"
+🟪 Policy: "When HouseholdCreated → OfferDefaultCategories"
   → 📖 Default Category Selection (user chooses: keep all / customize / start empty)
   → 🟦 SeedDefaultCategories (18 expense + 5 income, minus any user removed)
     → 🟩 Category (×N)
       → 🟧 CategoryCreated (×N)
+
+🟪 Policy: "When HouseholdCreated → CreateDefaultAccount"
+  → 🟦 CreateDefaultAccount (name = "Gotówka", currency = main currency)
+    → 🟩 Account
+      → 🟧 AccountCreated
 ```
 
 **📖 Read Models produced:**
 - User Profile
-- Household Members List- Default Category Selection UI
+- Household Members List
+- Default Category Selection UI
+
 **🔴 Hot Spots (resolved):**
 - ✅ HS-1: Default categories — **18 expense + 5 income** (Polish household set). On household creation, user is asked whether to keep defaults or customize.
 - ✅ HS-2: Multi-household — **Design for multi from day 1** (junction table `user_households`, explicit `householdId`), **single-household UX at launch.**
@@ -141,9 +148,41 @@
 - Category List (ordered, with icons and colors)
 
 **🔴 Hot Spots:**
-- Should we allow deleting a category that has transactions? Force reassignment first?
-- Category hierarchy (subcategories) — needed for MVP or later?
+- ✅ HS-34: Delete category with transactions? — **Reject deletion.** User must reassign all transactions to another category first. System enforces "no orphaned transactions" invariant.
+- Category hierarchy (subcategories) — needed for MVP or later? → **Phase 2+** (see HS-16)
 - Are categories shared across the household or per-user? → **Shared** (household-level)
+
+---
+
+### Flow 4b: Manage Accounts
+
+> Accounts are required before any transaction can be recorded. During household setup, the system creates a default account. Users can add more at any time.
+
+```
+🟪 Policy: "When HouseholdCreated → CreateDefaultAccount"
+  → 🟦 CreateDefaultAccount (name = "Gotówka" / "Cash", currency = household main currency)
+    → 🟩 Account
+      → 🟧 AccountCreated
+
+🟨 Household Member
+  → 🟦 AddAccount (name, currency, initialBalance)
+    → 🟩 Account
+      → 🟧 AccountCreated
+
+🟨 Household Member
+  → 🟦 RenameAccount (id, newName)
+    → 🟩 Account
+      → 🟧 AccountRenamed
+
+🟨 Household Member
+  → 🟦 DeactivateAccount (id)
+    → 🟩 Account
+      → ❓ Rule: Account has no pending transactions?
+      → 🟧 AccountDeactivated
+```
+
+**📖 Read Models produced:**
+- Account List (name, currency, balance)
 
 ---
 
@@ -177,6 +216,12 @@
       → ❓ Rule: Sum of split amounts == Transaction total amount?
         → NO  → 🔴 Reject — "Splits must equal the total"
         → YES → 🟧 TransactionSplit
+
+🟨 Household Member
+  → 🟦 UnsplitTransaction (transactionId, categoryId)
+    → 🟩 Transaction
+      → Remove all splits, reassign full amount to the given category
+      → 🟧 TransactionUnsplit
 ```
 
 **📖 Read Models updated:**
@@ -523,7 +568,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
     → 🟩 Asset
       → 🟧 AssetValueUpdated
 
-🟪 Policy: "When AssetValueUpdated OR EncumbranceRecorded → RecalculateNetWorth"
+🟪 Policy: "When AssetRecorded OR AssetValueUpdated OR EncumbranceRecorded → RecalculateNetWorth"
   → 🟦 RecalculateNetWorth
     → 🟩 NetWorthSnapshot (Σ Assets − Σ Encumbrances)
       → 🟧 NetWorthRecalculated
@@ -611,6 +656,11 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 │              🟪 SeedDefaultCategories
 │                    ▼
 │              🟧 CategoryCreated (×N)
+│                    │
+│                    ▼
+│              🟪 CreateDefaultAccount
+│                    ▼
+│              🟧 AccountCreated
 │
 ├─► 🟦 InviteMember (email) ──► 🟩 Invitation ──► 🟧 InvitationSent
 │                                                        │
@@ -654,6 +704,11 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 │                                                     ▼
 │                                            🟪 CheckBudget (per split category)
 │
+├─► 🟦 UnsplitTransaction ──► 🟩 Transaction ──► 🟧 TransactionUnsplit
+│                                                      │
+│                                                      ▼
+│                                             🟪 CheckBudget + 📖 Updates
+│
 ├─► 🟦 CategorizeTransaction ──► 🟩 Transaction ──► 🟧 TransactionCategorized
 │        (imported, uncategorized)                         │
 │                                                          ▼
@@ -681,19 +736,22 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ├─► 🟦 CreateCategory ──► 🟩 Category ──► 🟧 CategoryCreated
 ├─► 🟦 RenameCategory ──► 🟩 Category ──► 🟧 CategoryRenamed
 ├─► 🟦 DeleteCategory ──► 🟩 Category ──► 🟧 CategoryDeleted
-│       (❓ Rule: no orphaned transactions)
+│       (❓ Rule: reject if transactions exist — user must reassign first)
 │
-└─► 🟦 AddAccount ──► 🟩 Account ──► 🟧 AccountCreated
-         (name, currency)                   │
-                                            ▼
-                                   🟪 "If currency ≠ mainCurrency → FetchExchangeRate"
-                                            │
-                                            ▼
-                                   ⬜ Exchange Rate Service ──► 🟧 ExchangeRateFetched
+├─► 🟦 AddAccount ──► 🟩 Account ──► 🟧 AccountCreated
+│        (name, currency)                   │
+│                                           ▼
+│                                  🟪 "If currency ≠ mainCurrency → FetchExchangeRate"
+│                                           │
+│                                           ▼
+│                                  ⬜ Exchange Rate Service ──► 🟧 ExchangeRateFetched
+│
+├─► 🟦 RenameAccount ──► 🟩 Account ──► 🟧 AccountRenamed
+└─► 🟦 DeactivateAccount ──► 🟩 Account ──► 🟧 AccountDeactivated
 
 📖 Read Models:
-  - Transaction List (filtered by date, user, category, account, amount)
-  - Filtered Sum
+  - Transaction List (filtered by date, user, category, account, amount, type)
+  - Sticky Summary Footer (total income, total expenses, net)
   - Transaction Detail (with splits, receipt)
   - Category List
   - Account List
@@ -786,7 +844,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ├─► 🟦 UpdateAssetValue ──► 🟩 Asset ──► 🟧 AssetValueUpdated ──┤
 ├─► 🟦 RecordEncumbrance ──► 🟩 Encumbrance ──► 🟧 EncumbranceRecorded ──┤
 │                                                                         │
-│   🟪 "When any asset/encumbrance changes → RecalculateNetWorth" ◄───────┘
+│   🟪 "When any asset/encumbrance created or updated → RecalculateNetWorth" ◄───────┘
 │     → 🟩 NetWorthSnapshot ──► 🟧 NetWorthRecalculated
 │                                      │
 │                                      ▼
@@ -861,7 +919,7 @@ cross-cutting UI and platform concerns. Included here for traceability.
 ## All Hot Spots (Consolidated)
 
 > These are open questions to resolve before or during implementation.
-> MVP hot spots (HS-1 through HS-15) have been **resolved** — see the Resolution column.
+> MVP hot spots (HS-1 through HS-15 and HS-34) have been **resolved** — see the Resolution column.
 
 | # | Hot Spot | Context | Priority | Resolution |
 |---|----------|---------|----------|------------|
@@ -898,3 +956,4 @@ cross-cutting UI and platform concerns. Included here for traceability.
 | HS-31 | Auto-suggest category from merchant name on receipt? | Transaction Management | Phase 3 | |
 | HS-32 | Retirement: inflation & return rate assumptions | Wealth Management | Phase 4 | |
 | HS-33 | AI forecasting: simple average vs. ML model? | Budgeting | Phase 4 | |
+| HS-34 | Delete category with existing transactions — reject or force reassignment? | Transaction Management | MVP | ✅ **Reject deletion.** User must reassign all transactions to another category first. System enforces "no orphaned transactions" invariant. |
