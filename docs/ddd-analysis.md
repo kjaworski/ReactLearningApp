@@ -108,7 +108,7 @@
 - **Actor:** Household Member
 - **Trigger:** User clicks "Add Transaction"
 - **Flow:**
-  1. User enters: date, amount, account, comment
+  1. User enters: date, amount, account, user (which household member), comment
   2. User selects or creates a category
   3. (Optional) User splits amount across multiple categories
   4. (Optional) User attaches a receipt photo
@@ -577,3 +577,15 @@ End of month (or on-demand)
 | **Forecast** | A prediction of future expenses, receipts, or savings based on historical data |
 | **Invitation** | A pending request for a new User to join a Household; any member can send one |
 | **Main Currency** | The Household's primary currency, used for consolidated reporting |
+
+---
+
+### 5.6 Non-Functional Requirements
+
+> These requirements don't map to domain concepts, bounded contexts, or use cases — they are cross-cutting UI and platform concerns. Included here for full traceability against the requirements document.
+
+| Req | Requirement | Notes |
+|-----|-------------|-------|
+| 12 | Web and mobile access (mobile-first, responsive) | Phase 1: responsive web only. Phase 4: dedicated mobile app (native or PWA). |
+| 13 | Dark mode / light mode switching | Theme preference stored per User profile. Toggle available on every screen. |
+| 14 | Modern UI design | Clean, minimal interface with a consistent design system. |
