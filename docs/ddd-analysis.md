@@ -41,6 +41,7 @@
 | 2 | Bank API import (automatic + on-demand) |
 | 9 | Subscription tracking & reminders |
 | 17 | Receipt photo/scan attachment |
+| 17b | Import transaction from uploaded receipt (OCR) |
 | 18 | Bank promotion requirements tracking |
 
 ### Phase 4 — Wealth & Forecasting
@@ -242,6 +243,19 @@
   2. System calculates scenarios (how much to save, how long to work, projected pension)
 - **Outcome:** Retirement projection with actionable numbers
 - **Query:** `ForecastRetirement`
+
+### UC-15: Import Transaction from Receipt
+- **Actor:** Household Member
+- **Trigger:** User clicks "Scan Receipt" or uploads a photo/file
+- **Flow:**
+  1. User uploads a receipt image (photo, scan, or PDF)
+  2. System sends the image to an OCR/AI service for data extraction
+  3. System creates a **draft transaction** pre-filled with extracted data (date, total amount, merchant/items)
+  4. User reviews the draft — corrects any errors, selects account and category
+  5. (Optional) User splits the amount across categories
+  6. User confirms → system saves the transaction with the receipt attached
+- **Outcome:** A new transaction is created from the receipt; the original image is stored as an attachment
+- **Command:** `ExtractReceiptData`, `ConfirmReceiptTransaction`
 
 ### UC-14: Track Bank Promotion Requirements
 - **Actor:** Household Member
