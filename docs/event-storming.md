@@ -151,7 +151,7 @@
 
 ```
 🟨 Household Member
-  → 🟦 RecordTransaction (date, amount, accountId, categoryId, comment)
+  → 🟦 RecordTransaction (date, amount, accountId, userId, categoryId, comment)
     → 🟩 Transaction
       → ❓ Rule: Account exists? Category exists? Amount > 0?
       → 🟧 TransactionRecorded
@@ -831,6 +831,25 @@
                                                                           │
                                                                           ▼
                                                                   📖 Suggested budgets
+
+══════════════════════════════════════════════════════════════════════
+ NON-FUNCTIONAL / UI REQUIREMENTS (Reqs 12, 13, 14)
+══════════════════════════════════════════════════════════════════════
+
+These requirements don't produce domain events or commands — they are
+cross-cutting UI and platform concerns. Included here for traceability.
+
+📐 Req 12 — Web and Mobile Access
+  • Phase 1: web-only, mobile-first responsive design
+  • Phase 4: dedicated mobile app (native or PWA)
+
+🌗 Req 13 — Dark Mode / Light Mode
+  • Theme toggle available from any screen
+  • User preference persisted per User (stored in user profile)
+
+🎨 Req 14 — Modern UI Design
+  • Clean, minimal interface with consistent design system
+  • Follows mobile-first responsive layout
 ```
 
 ---
