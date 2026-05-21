@@ -1,0 +1,10 @@
+{
+    "name": "@finance/api",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "echo \"api dev placeholder\"",
+        "build": "echo \"api build placeholder\"",
+        "lint": "echo \"api lint placeholder\""
+    }
+}

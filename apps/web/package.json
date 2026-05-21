@@ -1,0 +1,10 @@
+{
+    "name": "@finance/web",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "echo \"web dev placeholder\"",
+        "build": "echo \"web build placeholder\"",
+        "lint": "echo \"web lint placeholder\""
+    }
+}
