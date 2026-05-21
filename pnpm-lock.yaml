@@ -14,6 +14,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@finance/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.21(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -102,6 +105,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@finance/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       next:
         specifier: 16.2.6
         version: 16.2.6(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -137,7 +143,11 @@ importers:
         specifier: ^5
         version: 5.9.3
 
-  packages/shared: {}
+  packages/shared:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
 
 packages:
 
