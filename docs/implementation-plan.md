@@ -18,12 +18,13 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 4. ~~**Set up shared types package** (`packages/shared`) — `package.json`, `tsconfig.json`, export barrel file. Add `TransactionType` enum and basic DTOs as first shared types~~ ✅
 5. ~~**Docker Compose** — PostgreSQL 16 container for local dev (port 5432), volume for data persistence. Optional: pgAdmin container~~ ✅
 6. ~~**Prisma setup** (`apps/api/prisma/`) — install Prisma, create initial `schema.prisma` with datasource config, generate client~~ ✅
-7. **ESLint + Prettier** — shared config at root, workspace-specific overrides
+7. ~~**ESLint + Prettier** — shared config at root, workspace-specific overrides~~ ✅
 8. **Husky + lint-staged** — pre-commit hook for linting + formatting
 9. **Environment config** — `.env.example` with DATABASE_URL, JWT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_SECRET, NEXTAUTH_URL
 10. **Turborepo pipelines** — configure `turbo.json` for `build`, `dev`, `lint`, `test` tasks with correct dependency graph
 
 **Verification:**
+
 - `pnpm install` succeeds
 - `turbo dev` starts both Next.js (port 3000) and NestJS (port 3001) concurrently
 - `docker compose up -d` starts PostgreSQL, NestJS connects to it
@@ -31,6 +32,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - `turbo lint` passes on all workspaces
 
 **Relevant files:**
+
 - Root: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `.eslintrc.js`, `.prettierrc`, `docker-compose.yml`, `.env.example`
 - `apps/api/`: `nest-cli.json`, `tsconfig.json`, `src/main.ts`, `src/app.module.ts`
 - `apps/web/`: `next.config.ts`, `tsconfig.json`, `tailwind.config.ts`, `app/layout.tsx`
@@ -38,7 +40,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 ---
 
-## Phase B: Database Schema (Prisma) — *depends on Phase A*
+## Phase B: Database Schema (Prisma) — _depends on Phase A_
 
 > Translate the DDD domain model (ddd-analysis.md section 5.2) into a Prisma schema. MVP-only tables — don't create Phase 2-4 tables yet.
 
@@ -63,17 +65,20 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 5. **Run first migration** — `prisma migrate dev --name init`
 
 **Verification:**
+
 - `npx prisma migrate dev` runs without errors
 - `npx prisma studio` opens and shows all tables with correct columns and relationships
 - `npx prisma db seed` populates default categories
 - Generated Prisma Client types match the domain model from ddd-analysis.md section 5.2
 
 **Relevant files:**
+
 - `apps/api/prisma/schema.prisma` — all model definitions
 - `apps/api/prisma/seed.ts` — default categories
 - `apps/api/prisma/migrations/` — generated migration files
 
 **Key decisions baked in:**
+
 - `user_households` junction table from day 1 (HS-2)
 - Amount stored as `Decimal` (not Float) for financial precision
 - `householdId` on every household-scoped table for explicit scoping
@@ -83,7 +88,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 ---
 
-## Phase C: Backend — Identity & Access Module — *depends on Phase B*
+## Phase C: Backend — Identity & Access Module — _depends on Phase B_
 
 > Build UC-6 (Register & Login), UC-16 (Invite Member), household creation, default categories/account seeding. This is the auth foundation everything else depends on.
 
@@ -127,6 +132,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
    - Auth middleware in Next.js to protect routes
 
 **Verification:**
+
 - Register a user via Swagger → user + household + categories + account created in DB
 - Login → receive valid JWT → use it to call protected endpoints
 - Invite flow: create invitation → accept → new user in household
@@ -136,6 +142,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - Wrong householdId → 403
 
 **Relevant files:**
+
 - `apps/api/src/modules/identity/` — identity.module.ts, controllers/, commands/, queries/, dto/
 - `apps/api/src/common/` — guards/, decorators/, filters/, pipes/
 - `apps/api/src/prisma/` — prisma.module.ts, prisma.service.ts
@@ -144,7 +151,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 ---
 
-## Phase D: Backend — Transaction Management Module — *depends on Phase C*
+## Phase D: Backend — Transaction Management Module — _depends on Phase C_
 
 > Build UC-1 (Add Transaction), UC-3 (Split), UC-4 (Filter & Browse), UC-5 (Manage Categories), UC-17 (Manage Accounts). This is the core of the app.
 
@@ -177,6 +184,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 5. **CQRS event handlers** — `TransactionRecordedEvent` handler updates any read models (for MVP this is a no-op since we calculate on the fly per HS-14, but the event infrastructure should exist)
 
 **Verification:**
+
 - Create categories → list them → reorder → rename → delete (reject if used)
 - Create accounts → list → rename → deactivate (still shows in historical txns)
 - Record income + expense transactions → appear in list
@@ -188,12 +196,13 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - All endpoints require auth + correct householdId
 
 **Relevant files:**
+
 - `apps/api/src/modules/transaction/` — full module structure (controllers, commands, queries, events, dto, entities)
 - `packages/shared/src/` — TransactionType enum, CreateTransactionDto, FilterTransactionsDto, TransactionSummaryDto
 
 ---
 
-## Phase E: Backend — Reporting Module — *depends on Phase D*
+## Phase E: Backend — Reporting Module — _depends on Phase D_
 
 > Build UC-11 (Dashboard), UC-7 (Reports), PDF/CSV export. Read-only module that queries transaction data.
 
@@ -215,6 +224,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
    - `GET /households/:id/reports/monthly/export?month=2026-05&format=pdf` — PDF download (server-side generation with pdfkit or similar)
 
 **Verification:**
+
 - Dashboard returns correct totals matching manual calculation
 - Add a transaction → dashboard totals update (real-time per HS-13 — verify by re-fetching)
 - Monthly report groups transactions correctly by category
@@ -222,23 +232,24 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - PDF export renders cleanly
 
 **Relevant files:**
+
 - `apps/api/src/modules/reporting/` — reporting.module.ts, controllers/, queries/, services/
 
 ---
 
-## Phase F: Frontend — Next.js Pages — *depends on Phases C-E (backend APIs ready)*
+## Phase F: Frontend — Next.js Pages — _depends on Phases C-E (backend APIs ready)_
 
 > Build all MVP screens. Backend-first approach means you have working APIs to build against.
 
 **Steps:**
 
-1. **Layout & navigation** (*parallel with step 2*):
+1. **Layout & navigation** (_parallel with step 2_):
    - Root layout with sidebar navigation (Dashboard, Transactions, Categories, Accounts, Reports, Settings)
    - Mobile-first responsive: sidebar collapses to bottom tab bar on mobile
    - Dark/light mode toggle in header (Req 13) — use next-themes + Tailwind dark mode
    - shadcn/ui: install base components (Button, Input, Select, Dialog, Sheet, Table, Card, DropdownMenu, Toast)
 
-2. **Auth pages** (*parallel with step 1*):
+2. **Auth pages** (_parallel with step 1_):
    - `/login` — email + password form, Google OAuth button
    - `/register` — registration form with default categories selection UI (HS-1: show list, user can toggle off categories they don't want)
    - NextAuth.js session provider wrapping the app
@@ -291,6 +302,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
    - Pending invitations list with resend/revoke actions
 
 **Verification:**
+
 - Complete user journey: register → see dashboard → add transactions → view filtered list → split a transaction → view reports → export PDF
 - Mobile viewport: all pages are usable on 375px width
 - Dark mode: toggle works, all pages render correctly
@@ -298,6 +310,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - Invite flow: invite → accept (in another browser/incognito) → new user sees shared data
 
 **Relevant files:**
+
 - `apps/web/app/(auth)/login/page.tsx`, `register/page.tsx`
 - `apps/web/app/(dashboard)/layout.tsx` — authenticated layout with sidebar
 - `apps/web/app/(dashboard)/dashboard/page.tsx`
@@ -311,7 +324,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 ---
 
-## Phase G: Testing & Polish — *depends on Phase F*
+## Phase G: Testing & Polish — _depends on Phase F_
 
 > Final quality pass. Tests, responsiveness, edge cases, performance.
 
@@ -354,6 +367,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
    - Form validation error messages (user-friendly, in Polish where appropriate)
 
 **Verification:**
+
 - `turbo test` — all unit + integration tests pass
 - `npx playwright test` — all E2E scenarios pass
 - Lighthouse score > 90 for performance on dashboard page
@@ -364,6 +378,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 ## Decisions & Scope
 
 **In scope (MVP):**
+
 - Registration, login (email + Google), invitations
 - Manual transaction entry (Income/Expense), split/unsplit
 - Categories (18+5 defaults, CRUD, reorder)
@@ -375,6 +390,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - Household-scoped data with multi-household-ready data model
 
 **Explicitly excluded from MVP:**
+
 - Budgets (Phase 2)
 - Multi-currency accounts + exchange rates (Phase 2)
 - Savings graph (Phase 2)
@@ -391,6 +407,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - AWS deployment (post-MVP — develop locally first)
 
 **Key architectural decisions:**
+
 - Backend-first development (familiar for .NET dev, provides working APIs for frontend)
 - CQRS infrastructure from day 1 even though MVP calculates on the fly (HS-14) — event handlers are no-ops but the pattern is established
 - Multi-household junction table from day 1 (HS-2) — no migration needed later

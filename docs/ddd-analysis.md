@@ -12,49 +12,49 @@
 
 ### MVP (Phase 1) — Core Finance Tracking
 
-| # | Feature | Why it's in MVP |
-|---|---------|-----------------|
-| 1 | Manual transaction entry (date, amount, category, user, comment, account) | The fundamental action — without it nothing works |
-| 6 | Custom expense categories | Users need their own taxonomy from day one |
-| 17.a | Manage accounts (create, rename, deactivate; default account on setup) | Every transaction needs an account — must exist before first entry |
-| 3 | Split transaction across categories | Common real-world scenario (supermarket receipt = groceries + cleaning supplies) |
-| 4 | Filter transactions (by user, date, category, account, amount) | Useless data without the ability to find things |
-| 5 | Sum of filtered transactions | Immediate insight |
-| 7 | User registration & login (password + Google) | Security & multi-user support |
-| 7.a | Invite household members (7-day expiry, single-use, revocable) | Shared household requires inviting a partner/family from day one |
-| 8 | Basic reports: monthly statement, category summary | Minimum actionable insight |
-| 16 | Simple dashboard: pie chart of expenses, balance, total expenses/receipts | The "home screen" that gives a snapshot |
-| 13 | Dark/light mode | Low effort, high perceived quality |
-| 14 | Modern UI, mobile-first, responsive (web only) | One platform to start with |
+| #    | Feature                                                                   | Why it's in MVP                                                                  |
+| ---- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1    | Manual transaction entry (date, amount, category, user, comment, account) | The fundamental action — without it nothing works                                |
+| 6    | Custom expense categories                                                 | Users need their own taxonomy from day one                                       |
+| 17.a | Manage accounts (create, rename, deactivate; default account on setup)    | Every transaction needs an account — must exist before first entry               |
+| 3    | Split transaction across categories                                       | Common real-world scenario (supermarket receipt = groceries + cleaning supplies) |
+| 4    | Filter transactions (by user, date, category, account, amount)            | Useless data without the ability to find things                                  |
+| 5    | Sum of filtered transactions                                              | Immediate insight                                                                |
+| 7    | User registration & login (password + Google)                             | Security & multi-user support                                                    |
+| 7.a  | Invite household members (7-day expiry, single-use, revocable)            | Shared household requires inviting a partner/family from day one                 |
+| 8    | Basic reports: monthly statement, category summary                        | Minimum actionable insight                                                       |
+| 16   | Simple dashboard: pie chart of expenses, balance, total expenses/receipts | The "home screen" that gives a snapshot                                          |
+| 13   | Dark/light mode                                                           | Low effort, high perceived quality                                               |
+| 14   | Modern UI, mobile-first, responsive (web only)                            | One platform to start with                                                       |
 
 ### Phase 2 — Budgeting & Accounts
 
-| # | Feature |
-|---|---------|
-| 11 | Budget per category, alerts, color coding, projected receipts/expenses |
-| 10 | Multi-currency accounts with exchange rates |
-| 15 | Asset/savings graph over time |
-| 8+ | Extended reports: yearly, period comparison, per-user, savings info |
+| #   | Feature                                                                |
+| --- | ---------------------------------------------------------------------- |
+| 11  | Budget per category, alerts, color coding, projected receipts/expenses |
+| 10  | Multi-currency accounts with exchange rates                            |
+| 15  | Asset/savings graph over time                                          |
+| 8+  | Extended reports: yearly, period comparison, per-user, savings info    |
 
 ### Phase 3 — Automation & Integrations
 
-| # | Feature |
-|---|---------|
-| 2 | Bank API import (automatic + on-demand) |
-| 9 | Subscription tracking & reminders |
-| 17 | Receipt photo/scan attachment |
+| #   | Feature                                        |
+| --- | ---------------------------------------------- |
+| 2   | Bank API import (automatic + on-demand)        |
+| 9   | Subscription tracking & reminders              |
+| 17  | Receipt photo/scan attachment                  |
 | 17b | Import transaction from uploaded receipt (OCR) |
-| 18 | Bank promotion requirements tracking |
+| 18  | Bank promotion requirements tracking           |
 
 ### Phase 4 — Wealth & Forecasting
 
-| # | Feature |
-|---|---------|
-| 19 | Assets & encumbrances, net worth calculation |
-| 20 | Retirement forecasting |
-| 11.6.1 | AI-powered budget forecasting |
-| 12 | Dedicated mobile app (native or PWA) |
-| 16.7-8 | Custom dashboard widgets |
+| #      | Feature                                      |
+| ------ | -------------------------------------------- |
+| 19     | Assets & encumbrances, net worth calculation |
+| 20     | Retirement forecasting                       |
+| 11.6.1 | AI-powered budget forecasting                |
+| 12     | Dedicated mobile app (native or PWA)         |
+| 16.7-8 | Custom dashboard widgets                     |
 
 ---
 
@@ -65,20 +65,20 @@
 
 ### Primary Actor
 
-| Actor | Description | Key Needs |
-|-------|-------------|----------|
+| Actor                | Description                                                                                                                                                                                                              | Key Needs                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | **Household Member** | Any person in a household. All members have equal access — everyone can add transactions, manage categories, set budgets, view reports, configure accounts, and invite others. A solo user is simply a household of one. | Add transactions, manage categories & budgets, see combined and per-member views, configure accounts |
 
 > **Why one role?** In your domain, you and your fiancée are equal partners. There is no "admin" who controls settings while others just view data. Every member can do everything. This simplifies the model — no role checks, no permission hierarchies. If you later need restrictions (e.g., a child account with limited access), you can introduce roles then.
 
 ### Secondary Actors (interact indirectly)
 
-| Actor | Description |
-|-------|-------------|
-| **Bank API** | External system that provides transaction data |
-| **Exchange Rate Service** | External system providing currency conversion rates |
-| **Notification System** | Sends reminders about subscriptions, budgets, promotions |
-| **AI Forecasting Service** | Generates budget predictions and retirement projections |
+| Actor                      | Description                                              |
+| -------------------------- | -------------------------------------------------------- |
+| **Bank API**               | External system that provides transaction data           |
+| **Exchange Rate Service**  | External system providing currency conversion rates      |
+| **Notification System**    | Sends reminders about subscriptions, budgets, promotions |
+| **AI Forecasting Service** | Generates budget predictions and retirement projections  |
 
 ---
 
@@ -87,17 +87,17 @@
 > **Why identify problems?**
 > In DDD the problems define the **Problem Space** — the real-world challenges that justify the software's existence. Each problem maps to one or more **Subdomains**.
 
-| # | Problem | Subdomain |
-|---|---------|-----------|
-| P1 | **No single view of finances** — money is spread across multiple bank accounts, currencies, and family members | Transaction Management |
-| P2 | **Manual tracking is tedious** — writing down every expense in a spreadsheet is error-prone and time-consuming | Transaction Management, Bank Integration |
-| P3 | **No idea where money goes** — hard to see spending patterns without categorization and reports | Categorization, Reporting |
-| P4 | **Overspending without realizing** — no alerts or visual feedback when a budget is exceeded | Budgeting |
-| P5 | **Forgotten subscriptions & bills** — recurring payments slip through the cracks | Subscription Management |
-| P6 | **No visibility into net worth** — people don't know if they're getting richer or poorer over time | Asset Management |
-| P7 | **Retirement anxiety** — no easy way to model "will I have enough?" scenarios | Retirement Planning |
-| P8 | **Missing bank promotion conditions** — losing bonus interest or cashback because a condition wasn't met | Promotion Tracking |
-| P9 | **Multi-currency confusion** — hard to see total wealth when accounts are in PLN, EUR, USD, etc. | Account Management |
+| #   | Problem                                                                                                        | Subdomain                                |
+| --- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| P1  | **No single view of finances** — money is spread across multiple bank accounts, currencies, and family members | Transaction Management                   |
+| P2  | **Manual tracking is tedious** — writing down every expense in a spreadsheet is error-prone and time-consuming | Transaction Management, Bank Integration |
+| P3  | **No idea where money goes** — hard to see spending patterns without categorization and reports                | Categorization, Reporting                |
+| P4  | **Overspending without realizing** — no alerts or visual feedback when a budget is exceeded                    | Budgeting                                |
+| P5  | **Forgotten subscriptions & bills** — recurring payments slip through the cracks                               | Subscription Management                  |
+| P6  | **No visibility into net worth** — people don't know if they're getting richer or poorer over time             | Asset Management                         |
+| P7  | **Retirement anxiety** — no easy way to model "will I have enough?" scenarios                                  | Retirement Planning                      |
+| P8  | **Missing bank promotion conditions** — losing bonus interest or cashback because a condition wasn't met       | Promotion Tracking                       |
+| P9  | **Multi-currency confusion** — hard to see total wealth when accounts are in PLN, EUR, USD, etc.               | Account Management                       |
 
 ---
 
@@ -107,6 +107,7 @@
 > A use case describes **one specific thing an actor wants to accomplish** with the system. It has a trigger, a flow of steps, and an outcome. In DDD, use cases help us discover **Commands** (things that change state) and **Queries** (things that read state).
 
 ### UC-1: Add a Transaction Manually
+
 - **Actor:** Household Member
 - **Trigger:** User clicks "Add Transaction"
 - **Flow:**
@@ -120,6 +121,7 @@
 - **Command:** `RecordTransaction`
 
 ### UC-2: Import Transactions from Bank
+
 - **Actor:** System (scheduled) or Household Member (on demand)
 - **Trigger:** Daily schedule or user clicks "Import Now"
 - **Flow:**
@@ -132,6 +134,7 @@
 - **Command:** `ImportTransactions`, `CategorizeTransaction`
 
 ### UC-3: Split a Transaction
+
 - **Actor:** Household Member
 - **Trigger:** User opens an existing transaction
 - **Flow:**
@@ -145,6 +148,7 @@
 - **Command:** `SplitTransaction`, `UnsplitTransaction`
 
 ### UC-4: Filter & Browse Transactions
+
 - **Actor:** Household Member
 - **Trigger:** User opens the transaction list
 - **Flow:**
@@ -156,6 +160,7 @@
 - **Query:** `GetFilteredTransactions`, `GetFilteredTransactionsSummary`
 
 ### UC-5: Manage Categories
+
 - **Actor:** Household Member
 - **Trigger:** User opens category settings
 - **Flow:**
@@ -165,6 +170,7 @@
 - **Command:** `CreateCategory`, `RenameCategory`, `DeleteCategory`
 
 ### UC-6: Register & Log In
+
 - **Actor:** Household Member
 - **Trigger:** User opens the app for the first time / returns
 - **Flow:**
@@ -179,6 +185,7 @@
 - **Command:** `RegisterUser`, `AuthenticateUser`, `SeedDefaultCategories`, `CreateDefaultAccount`
 
 ### UC-7: View Reports
+
 - **Actor:** Household Member
 - **Trigger:** User opens Reports section
 - **Flow:**
@@ -192,6 +199,7 @@
 - **Command:** `ExportReport`
 
 ### UC-8: Set & Track a Budget
+
 - **Actor:** Household Member
 - **Trigger:** User opens Budgets section
 - **Flow:**
@@ -204,6 +212,7 @@
 - **Command:** `SetBudget`, **Event:** `BudgetExceeded`
 
 ### UC-9: Manage Subscriptions
+
 - **Actor:** Household Member
 - **Trigger:** User adds a subscription
 - **Flow:**
@@ -214,6 +223,7 @@
 - **Command:** `RegisterSubscription`
 
 ### UC-10: Track Multi-Currency Accounts
+
 - **Actor:** Household Member
 - **Trigger:** User adds an account in a foreign currency
 - **Flow:**
@@ -225,6 +235,7 @@
 - **Command:** `AddAccount`
 
 ### UC-11: View Dashboard
+
 - **Actor:** Household Member
 - **Trigger:** User opens the app
 - **Flow:**
@@ -236,6 +247,7 @@
 - **Query:** `GetDashboard`
 
 ### UC-12: Track Assets & Encumbrances
+
 - **Actor:** Household Member
 - **Trigger:** User opens Net Worth section
 - **Flow:**
@@ -248,6 +260,7 @@
 - **Command:** `RecordAsset`, `RecordEncumbrance`
 
 ### UC-13: Forecast Retirement
+
 - **Actor:** Household Member
 - **Trigger:** User opens Retirement Planner
 - **Flow:**
@@ -257,6 +270,7 @@
 - **Query:** `ForecastRetirement`
 
 ### UC-14: Track Bank Promotion Requirements
+
 - **Actor:** Household Member
 - **Trigger:** User adds a bank promotion
 - **Flow:**
@@ -267,6 +281,7 @@
 - **Command:** `RegisterPromotion`
 
 ### UC-15: Import Transaction from Receipt
+
 - **Actor:** Household Member
 - **Trigger:** User clicks "Scan Receipt" or uploads a photo/file
 - **Flow:**
@@ -280,6 +295,7 @@
 - **Command:** `ExtractReceiptData`, `ConfirmReceiptTransaction`
 
 ### UC-16: Invite a Household Member
+
 - **Actor:** Household Member
 - **Trigger:** User clicks "Invite Member"
 - **Flow:**
@@ -292,6 +308,7 @@
 - **Command:** `InviteMember`, `AcceptInvitation`, `RevokeInvitation`
 
 ### UC-17: Manage Accounts
+
 - **Actor:** Household Member (or System during household setup)
 - **Trigger:** User opens account settings, or household is created
 - **Flow:**
@@ -452,85 +469,87 @@ End of month (or on-demand)
 
 #### Bounded Context: Transaction Management
 
-| Concept | Type | Description |
-|---------|------|-------------|
-| **Transaction** | **Aggregate Root (Entity)** | A single financial event. Has a unique ID, **type** (Income or Expense), date, total amount (always positive), account, user, comment. Controls its Splits. |
-| **TransactionSplit** | Entity (inside Transaction aggregate) | One portion of a split transaction — links a sub-amount to a category. Identity matters because you edit/delete specific splits. |
-| **Money** | Value Object | Amount + Currency (e.g., 150.00 PLN). Immutable — you don't change a Money, you create a new one. Two `Money(150, PLN)` are equal. |
-| **Category** | Aggregate Root (Entity) | A user-defined expense/income label (e.g., "Groceries", "Rent"). Has a unique ID, name, icon, color. |
-| **Account** | Aggregate Root (Entity) | A bank account or cash wallet. Has ID, name, currency, current balance. |
-| **Receipt** | Entity (inside Transaction aggregate) | An attached photo/scan of a paper receipt. Stored as a file reference. |
-| **TransactionType** | Value Object | Either `Income` or `Expense`. Determines the meaning of the amount — always positive, direction determined by type. |
+| Concept              | Type                                  | Description                                                                                                                                                 |
+| -------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Transaction**      | **Aggregate Root (Entity)**           | A single financial event. Has a unique ID, **type** (Income or Expense), date, total amount (always positive), account, user, comment. Controls its Splits. |
+| **TransactionSplit** | Entity (inside Transaction aggregate) | One portion of a split transaction — links a sub-amount to a category. Identity matters because you edit/delete specific splits.                            |
+| **Money**            | Value Object                          | Amount + Currency (e.g., 150.00 PLN). Immutable — you don't change a Money, you create a new one. Two `Money(150, PLN)` are equal.                          |
+| **Category**         | Aggregate Root (Entity)               | A user-defined expense/income label (e.g., "Groceries", "Rent"). Has a unique ID, name, icon, color.                                                        |
+| **Account**          | Aggregate Root (Entity)               | A bank account or cash wallet. Has ID, name, currency, current balance.                                                                                     |
+| **Receipt**          | Entity (inside Transaction aggregate) | An attached photo/scan of a paper receipt. Stored as a file reference.                                                                                      |
+| **TransactionType**  | Value Object                          | Either `Income` or `Expense`. Determines the meaning of the amount — always positive, direction determined by type.                                         |
 
 **Key Rule (Invariant):**
+
 > The sum of all `TransactionSplit` amounts must equal the `Transaction` total amount.
 
 #### Bounded Context: Identity & Access
 
-| Concept | Type | Description |
-|---------|------|-------------|
-| **User** | Aggregate Root (Entity) | A person using the app. Has ID, email, auth method, display name. Every user is a full and equal member of their Household — there are no restricted roles. |
-| **Household** | Aggregate Root (Entity) | A group of users sharing finances equally. Has ID, name, main currency, list of member references. All members have identical permissions. **Data model uses a junction table `user_households` to support multi-household in the future**, but MVP launches with single-household UX (no switcher). All APIs are scoped with explicit `householdId`. |
-| **Invitation** | Entity | A pending invite for someone to join a Household. Has ID, inviter reference, invitee email, status (pending/accepted/expired/revoked), **expiry: 7 days**. Single-use token. Inviter can resend (new token, old invalidated) or revoke. Any member can invite others. |
-| **AuthCredentials** | Value Object | Password hash or Google OAuth token. Never stored as plain text. |
+| Concept             | Type                    | Description                                                                                                                                                                                                                                                                                                                                           |
+| ------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **User**            | Aggregate Root (Entity) | A person using the app. Has ID, email, auth method, display name. Every user is a full and equal member of their Household — there are no restricted roles.                                                                                                                                                                                           |
+| **Household**       | Aggregate Root (Entity) | A group of users sharing finances equally. Has ID, name, main currency, list of member references. All members have identical permissions. **Data model uses a junction table `user_households` to support multi-household in the future**, but MVP launches with single-household UX (no switcher). All APIs are scoped with explicit `householdId`. |
+| **Invitation**      | Entity                  | A pending invite for someone to join a Household. Has ID, inviter reference, invitee email, status (pending/accepted/expired/revoked), **expiry: 7 days**. Single-use token. Inviter can resend (new token, old invalidated) or revoke. Any member can invite others.                                                                                 |
+| **AuthCredentials** | Value Object            | Password hash or Google OAuth token. Never stored as plain text.                                                                                                                                                                                                                                                                                      |
 
 #### Bounded Context: Budgeting
 
-| Concept | Type | Description |
-|---------|------|-------------|
-| **Budget** | Aggregate Root (Entity) | A spending limit for a category in a given month. Has ID, category reference, month, limit amount, projected receipts. |
-| **BudgetStatus** | Value Object | Calculated state: `UnderBudget` or `OverBudget`, with actual vs. limit amounts. Determines green/red coloring. |
-| **Forecast** | Value Object | AI-generated projection of future expenses/receipts/savings based on historical data. |
+| Concept          | Type                    | Description                                                                                                            |
+| ---------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Budget**       | Aggregate Root (Entity) | A spending limit for a category in a given month. Has ID, category reference, month, limit amount, projected receipts. |
+| **BudgetStatus** | Value Object            | Calculated state: `UnderBudget` or `OverBudget`, with actual vs. limit amounts. Determines green/red coloring.         |
+| **Forecast**     | Value Object            | AI-generated projection of future expenses/receipts/savings based on historical data.                                  |
 
 **Key Rule:**
+
 > When actual spending in a category exceeds the budget limit, the system must emit a `BudgetExceeded` event.
 
 #### Bounded Context: Subscription Management
 
-| Concept | Type | Description |
-|---------|------|-------------|
-| **Subscription** | Aggregate Root (Entity) | A recurring payment (e.g., Netflix, 49.99 PLN, every 15th). Has ID, name, amount, billing day, account, active/inactive status. |
-| **PaymentStatus** | Value Object | For a given month: `Upcoming`, `Paid`, or `Overdue`. |
+| Concept           | Type                    | Description                                                                                                                     |
+| ----------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Subscription**  | Aggregate Root (Entity) | A recurring payment (e.g., Netflix, 49.99 PLN, every 15th). Has ID, name, amount, billing day, account, active/inactive status. |
+| **PaymentStatus** | Value Object            | For a given month: `Upcoming`, `Paid`, or `Overdue`.                                                                            |
 
 #### Bounded Context: Bank Integration
 
-| Concept | Type | Description |
-|---------|------|-------------|
-| **BankConnection** | Aggregate Root (Entity) | A link to an external bank API. Has ID, bank name, API credentials (encrypted), linked account. |
-| **ImportBatch** | Entity | A set of transactions downloaded in one import run. Has timestamp, count, status (pending/categorized). |
-| **RawTransaction** | Value Object | Unprocessed transaction data from the bank, before user categorizes it. |
+| Concept            | Type                    | Description                                                                                             |
+| ------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| **BankConnection** | Aggregate Root (Entity) | A link to an external bank API. Has ID, bank name, API credentials (encrypted), linked account.         |
+| **ImportBatch**    | Entity                  | A set of transactions downloaded in one import run. Has timestamp, count, status (pending/categorized). |
+| **RawTransaction** | Value Object            | Unprocessed transaction data from the bank, before user categorizes it.                                 |
 
 #### Bounded Context: Wealth Management
 
-| Concept | Type | Description |
-|---------|------|-------------|
-| **Asset** | Aggregate Root (Entity) | Something of value owned by the household (apartment, car, stocks). Has ID, name, type, current estimated value, last updated date. |
-| **Encumbrance** | Aggregate Root (Entity) | A debt or obligation (mortgage, car loan). Has ID, name, type, remaining balance, monthly payment. |
-| **NetWorthSnapshot** | Value Object | A point-in-time calculation: total assets − total encumbrances. Stored monthly for historical graphing. |
-| **NetWorthGoal** | Value Object | The target net worth the user wants to achieve. |
-| **RetirementScenario** | Value Object | Input parameters (current age, target age, desired monthly income, savings) and calculated output (required monthly saving, projected pension). |
+| Concept                | Type                    | Description                                                                                                                                     |
+| ---------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Asset**              | Aggregate Root (Entity) | Something of value owned by the household (apartment, car, stocks). Has ID, name, type, current estimated value, last updated date.             |
+| **Encumbrance**        | Aggregate Root (Entity) | A debt or obligation (mortgage, car loan). Has ID, name, type, remaining balance, monthly payment.                                              |
+| **NetWorthSnapshot**   | Value Object            | A point-in-time calculation: total assets − total encumbrances. Stored monthly for historical graphing.                                         |
+| **NetWorthGoal**       | Value Object            | The target net worth the user wants to achieve.                                                                                                 |
+| **RetirementScenario** | Value Object            | Input parameters (current age, target age, desired monthly income, savings) and calculated output (required monthly saving, projected pension). |
 
 #### Bounded Context: Currency Exchange
 
-| Concept | Type | Description |
-|---------|------|-------------|
+| Concept          | Type         | Description                                                                                    |
+| ---------------- | ------------ | ---------------------------------------------------------------------------------------------- |
 | **ExchangeRate** | Value Object | A conversion rate between two currencies on a given date (e.g., EUR/PLN = 4.32 on 2026-05-13). |
-| **CurrencyPair** | Value Object | Two currency codes (e.g., EUR/PLN). |
+| **CurrencyPair** | Value Object | Two currency codes (e.g., EUR/PLN).                                                            |
 
 #### Bounded Context: Promotion Tracking
 
-| Concept | Type | Description |
-|---------|------|-------------|
-| **Promotion** | Aggregate Root (Entity) | A bank promotion with conditions. Has ID, name, bank, promo page URL, T&C URL, active period. |
-| **PromotionCondition** | Entity (inside Promotion aggregate) | A single condition to meet (e.g., "≥5 card transactions/month"). |
-| **ComplianceStatus** | Value Object | For a given month: each condition marked as `Met` or `Unmet`. |
+| Concept                | Type                                | Description                                                                                   |
+| ---------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Promotion**          | Aggregate Root (Entity)             | A bank promotion with conditions. Has ID, name, bank, promo page URL, T&C URL, active period. |
+| **PromotionCondition** | Entity (inside Promotion aggregate) | A single condition to meet (e.g., "≥5 card transactions/month").                              |
+| **ComplianceStatus**   | Value Object                        | For a given month: each condition marked as `Met` or `Unmet`.                                 |
 
 #### Bounded Context: Reporting & Analytics
 
-| Concept | Type | Description |
-|---------|------|-------------|
+| Concept             | Type         | Description                                                                                                                                |
+| ------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | **BalanceSnapshot** | Value Object | A point-in-time record of monthly savings: total income − total expenses for a given month. Stored monthly for the savings graph (Req 15). |
-| **ReportExport** | Value Object | A generated file (PDF or CSV) representing a report. Has format, data snapshot, and download URL. |
+| **ReportExport**    | Value Object | A generated file (PDF or CSV) representing a report. Has format, data snapshot, and download URL.                                          |
 
 ---
 
@@ -538,69 +557,70 @@ End of month (or on-demand)
 
 > **Beginner tip:** A Domain Event is a notification that "something important just happened." Other parts of the system listen for these events and react. This keeps components decoupled — the Transaction context doesn't need to know about Budgeting; it just says "a transaction was recorded" and Budgeting listens.
 
-| Event | Produced by | Consumed by | What happens |
-|-------|-------------|-------------|--------------|
-| **Identity & Access** | | | |
-| `UserRegistered` | Identity & Access | Transaction Mgmt | Initialize user profile, seed default categories + default account |
-| `HouseholdCreated` | Identity & Access | Transaction Mgmt | Set up shared space, create default account and categories |
-| `MemberJoinedHousehold` | Identity & Access | — | Update household member list |
-| `InvitationSent` | Identity & Access | External (Email) | Deliver invitation email to invitee |
-| `InvitationAccepted` | Identity & Access | Identity & Access | Trigger registration (if new) + join household |
-| `UserLoggedIn` | Identity & Access | Transaction Mgmt | Check for uncategorized transactions → show prompt |
-| **Transaction Management** | | | |
-| `TransactionRecorded` | Transaction Management | Budgeting, Reporting, Promotion Tracking | Recalculate budget usage; update reports; check promotion conditions |
-| `TransactionCategorized` | Transaction Management | Budgeting, Reporting | Uncategorized imported transaction now has a category — update aggregations |
-| `TransactionSplit` | Transaction Management | Budgeting, Reporting | Split amounts update per-category calculations |
-| `TransactionUnsplit` | Transaction Management | Budgeting, Reporting | Reverted to single category — recalculate per-category totals |
-| `CategoryCreated` | Transaction Management | Reporting | Update category list read model |
-| `AccountCreated` | Transaction Management | Currency Exchange | If foreign currency → fetch exchange rate |
-| `ReceiptAttached` | Transaction Management | — | Update transaction detail read model (thumbnail) |
-| `ReceiptDataExtracted` | Transaction Mgmt (via OCR) | — | Create draft transaction for user review |
-| **Budgeting** | | | |
-| `BudgetSet` | Budgeting | Reporting | Update budget overview read model |
-| `BudgetExceeded` | Budgeting | Notification Service | Send alert to user |
-| `BudgetForecastGenerated` | Budgeting (via AI) | — | Show suggested budgets for next month |
-| **Bank Integration** | | | |
-| `TransactionsImported` | Bank Integration | Transaction Management | Create uncategorized transactions; prompt user on next login |
-| **Subscription Management** | | | |
-| `SubscriptionRegistered` | Subscription Management | — | Schedule payment reminders |
-| `SubscriptionPaymentDue` | Subscription Management | Notification Service | Send upcoming payment reminder |
-| `SubscriptionOverdue` | Subscription Management | Notification Service | Send overdue alert |
-| **Currency Exchange** | | | |
-| `ExchangeRatesUpdated` | Currency Exchange | Transaction Mgmt, Reporting, Wealth Mgmt | Recalculate multi-currency totals |
-| **Promotion Tracking** | | | |
-| `PromotionConditionUnmet` | Promotion Tracking | Notification Service | Alert user about unmet conditions |
-| `PromotionReminderSent` | Promotion Tracking | — | Monthly reminder of conditions to meet |
-| **Wealth Management** | | | |
-| `AssetValueUpdated` | Wealth Management | Wealth Management, Reporting | Recalculate net worth, update graph |
-| `AssetRecorded` | Wealth Management | Wealth Management, Reporting | Initial asset creation — triggers net worth recalculation |
-| `EncumbranceRecorded` | Wealth Management | Wealth Management, Reporting | Initial encumbrance creation — triggers net worth recalculation |
-| `NetWorthRecalculated` | Wealth Management | Reporting | Update net worth dashboard and history graph |
-| **Reporting & Analytics** | | | |
-| `BalanceSnapshotTaken` | Reporting | — | Update savings graph (monthly data point) |
-| **Transaction Management (lifecycle)** | | | |
-| `CategoryRenamed` | Transaction Management | Reporting | Update category labels in read models |
-| `CategoryDeleted` | Transaction Management | Reporting | Remove category from lists and aggregations |
-| `CategoriesReordered` | Transaction Management | Reporting | Update display order in category lists |
-| `AccountRenamed` | Transaction Management | Reporting | Update account labels in read models |
-| `AccountDeactivated` | Transaction Management | Reporting | Remove account from active lists; historical data preserved |
-| `UncategorizedTransactionCreated` | Transaction Management | — | Triggers login prompt for user to categorize |
-| **Budgeting (lifecycle)** | | | |
-| `BudgetAlertSent` | Budgeting (via Notification) | — | Terminal event — notification delivered |
-| **Currency Exchange (lifecycle)** | | | |
-| `ExchangeRateFetched` | Currency Exchange | Reporting | Initial rate fetched when a new foreign-currency account is created |
-| **Promotion Tracking (lifecycle)** | | | |
-| `PromotionRegistered` | Promotion Tracking | — | Schedule monthly compliance evaluations |
-| `PromotionComplianceEvaluated` | Promotion Tracking | — | Update compliance read model for the month |
-| **Wealth Management (lifecycle)** | | | |
-| `NetWorthGoalSet` | Wealth Management | Reporting | Update net worth dashboard with goal and gap |
-| `AssetUpdateReminderSent` | Wealth Management (via Notification) | — | Terminal event — monthly reminder delivered |
+| Event                                  | Produced by                          | Consumed by                              | What happens                                                                |
+| -------------------------------------- | ------------------------------------ | ---------------------------------------- | --------------------------------------------------------------------------- |
+| **Identity & Access**                  |                                      |                                          |                                                                             |
+| `UserRegistered`                       | Identity & Access                    | Transaction Mgmt                         | Initialize user profile, seed default categories + default account          |
+| `HouseholdCreated`                     | Identity & Access                    | Transaction Mgmt                         | Set up shared space, create default account and categories                  |
+| `MemberJoinedHousehold`                | Identity & Access                    | —                                        | Update household member list                                                |
+| `InvitationSent`                       | Identity & Access                    | External (Email)                         | Deliver invitation email to invitee                                         |
+| `InvitationAccepted`                   | Identity & Access                    | Identity & Access                        | Trigger registration (if new) + join household                              |
+| `UserLoggedIn`                         | Identity & Access                    | Transaction Mgmt                         | Check for uncategorized transactions → show prompt                          |
+| **Transaction Management**             |                                      |                                          |                                                                             |
+| `TransactionRecorded`                  | Transaction Management               | Budgeting, Reporting, Promotion Tracking | Recalculate budget usage; update reports; check promotion conditions        |
+| `TransactionCategorized`               | Transaction Management               | Budgeting, Reporting                     | Uncategorized imported transaction now has a category — update aggregations |
+| `TransactionSplit`                     | Transaction Management               | Budgeting, Reporting                     | Split amounts update per-category calculations                              |
+| `TransactionUnsplit`                   | Transaction Management               | Budgeting, Reporting                     | Reverted to single category — recalculate per-category totals               |
+| `CategoryCreated`                      | Transaction Management               | Reporting                                | Update category list read model                                             |
+| `AccountCreated`                       | Transaction Management               | Currency Exchange                        | If foreign currency → fetch exchange rate                                   |
+| `ReceiptAttached`                      | Transaction Management               | —                                        | Update transaction detail read model (thumbnail)                            |
+| `ReceiptDataExtracted`                 | Transaction Mgmt (via OCR)           | —                                        | Create draft transaction for user review                                    |
+| **Budgeting**                          |                                      |                                          |                                                                             |
+| `BudgetSet`                            | Budgeting                            | Reporting                                | Update budget overview read model                                           |
+| `BudgetExceeded`                       | Budgeting                            | Notification Service                     | Send alert to user                                                          |
+| `BudgetForecastGenerated`              | Budgeting (via AI)                   | —                                        | Show suggested budgets for next month                                       |
+| **Bank Integration**                   |                                      |                                          |                                                                             |
+| `TransactionsImported`                 | Bank Integration                     | Transaction Management                   | Create uncategorized transactions; prompt user on next login                |
+| **Subscription Management**            |                                      |                                          |                                                                             |
+| `SubscriptionRegistered`               | Subscription Management              | —                                        | Schedule payment reminders                                                  |
+| `SubscriptionPaymentDue`               | Subscription Management              | Notification Service                     | Send upcoming payment reminder                                              |
+| `SubscriptionOverdue`                  | Subscription Management              | Notification Service                     | Send overdue alert                                                          |
+| **Currency Exchange**                  |                                      |                                          |                                                                             |
+| `ExchangeRatesUpdated`                 | Currency Exchange                    | Transaction Mgmt, Reporting, Wealth Mgmt | Recalculate multi-currency totals                                           |
+| **Promotion Tracking**                 |                                      |                                          |                                                                             |
+| `PromotionConditionUnmet`              | Promotion Tracking                   | Notification Service                     | Alert user about unmet conditions                                           |
+| `PromotionReminderSent`                | Promotion Tracking                   | —                                        | Monthly reminder of conditions to meet                                      |
+| **Wealth Management**                  |                                      |                                          |                                                                             |
+| `AssetValueUpdated`                    | Wealth Management                    | Wealth Management, Reporting             | Recalculate net worth, update graph                                         |
+| `AssetRecorded`                        | Wealth Management                    | Wealth Management, Reporting             | Initial asset creation — triggers net worth recalculation                   |
+| `EncumbranceRecorded`                  | Wealth Management                    | Wealth Management, Reporting             | Initial encumbrance creation — triggers net worth recalculation             |
+| `NetWorthRecalculated`                 | Wealth Management                    | Reporting                                | Update net worth dashboard and history graph                                |
+| **Reporting & Analytics**              |                                      |                                          |                                                                             |
+| `BalanceSnapshotTaken`                 | Reporting                            | —                                        | Update savings graph (monthly data point)                                   |
+| **Transaction Management (lifecycle)** |                                      |                                          |                                                                             |
+| `CategoryRenamed`                      | Transaction Management               | Reporting                                | Update category labels in read models                                       |
+| `CategoryDeleted`                      | Transaction Management               | Reporting                                | Remove category from lists and aggregations                                 |
+| `CategoriesReordered`                  | Transaction Management               | Reporting                                | Update display order in category lists                                      |
+| `AccountRenamed`                       | Transaction Management               | Reporting                                | Update account labels in read models                                        |
+| `AccountDeactivated`                   | Transaction Management               | Reporting                                | Remove account from active lists; historical data preserved                 |
+| `UncategorizedTransactionCreated`      | Transaction Management               | —                                        | Triggers login prompt for user to categorize                                |
+| **Budgeting (lifecycle)**              |                                      |                                          |                                                                             |
+| `BudgetAlertSent`                      | Budgeting (via Notification)         | —                                        | Terminal event — notification delivered                                     |
+| **Currency Exchange (lifecycle)**      |                                      |                                          |                                                                             |
+| `ExchangeRateFetched`                  | Currency Exchange                    | Reporting                                | Initial rate fetched when a new foreign-currency account is created         |
+| **Promotion Tracking (lifecycle)**     |                                      |                                          |                                                                             |
+| `PromotionRegistered`                  | Promotion Tracking                   | —                                        | Schedule monthly compliance evaluations                                     |
+| `PromotionComplianceEvaluated`         | Promotion Tracking                   | —                                        | Update compliance read model for the month                                  |
+| **Wealth Management (lifecycle)**      |                                      |                                          |                                                                             |
+| `NetWorthGoalSet`                      | Wealth Management                    | Reporting                                | Update net worth dashboard with goal and gap                                |
+| `AssetUpdateReminderSent`              | Wealth Management (via Notification) | —                                        | Terminal event — monthly reminder delivered                                 |
 
 ---
 
 ### 5.4 Context Map (How Bounded Contexts Relate)
 
 > **Beginner tip:** A Context Map shows how different bounded contexts communicate. Common patterns:
+>
 > - **Upstream/Downstream** — one context provides data that another consumes
 > - **Anti-Corruption Layer (ACL)** — a translation layer that protects your model from external system quirks (e.g., messy bank API data)
 
@@ -653,36 +673,37 @@ End of month (or on-demand)
 
 > **Beginner tip:** The Ubiquitous Language is a shared vocabulary used by everyone on the project — developers, designers, product owners. If the domain expert says "transaction," the code should have a class called `Transaction`, not `FinancialRecord` or `MoneyEvent`. This eliminates translation errors.
 
-| Term | Definition |
-|------|------------|
-| **Transaction** | A single financial event — money in or money out of an Account |
+| Term                | Definition                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- | --- | -------------------- | --------------------------------------------------------------------------------- |
+| **Transaction**     | A single financial event — money in or money out of an Account                                                |
 | **TransactionType** | Either `Income` (money in) or `Expense` (money out). Amount is always positive; the type determines direction |
-| **Split** | A portion of a Transaction assigned to a specific Category |
-| **Category** | A user-defined label for classifying expenses or income (e.g., "Groceries") |
-| **Account** | A financial container — bank account, cash wallet, or savings account |
-| **Household** | A group of Users who share financial tracking with equal access — every member can do everything |
-| **Budget** | A spending limit set for a Category within a time period (usually monthly) |
-| **Subscription** | A recurring payment obligation (e.g., Netflix, electricity) |
-| **Asset** | Something of value owned (apartment, car, investment portfolio) |
-| **Encumbrance** | A financial obligation or debt (mortgage, loan) |
-| **Net Worth** | Total value of Assets minus total Encumbrances |
-| **Receipt** | A photo or scan of a paper proof of purchase, attached to a Transaction |
-| **Promotion** | A bank offer with conditions that must be met monthly for benefits |
-| **Import Batch** | A set of Transactions downloaded from a Bank API in one operation |
-| **Exchange Rate** | The conversion ratio between two currencies on a given date |
-| **Forecast** | A prediction of future expenses, receipts, or savings based on historical data |
-| **Invitation** | A pending request for a new User to join a Household; any member can send one |
-| **Main Currency** | The Household's primary currency, used for consolidated reporting || **Balance Snapshot** | A monthly record of total income minus total expenses, used for the savings graph |
-| **Report Export** | A generated file (PDF or CSV) representing a report, available for download |
-| **Default Account** | The “Gotówka” (Cash) account auto-created when a new Household is set up, in the household’s main currency |
+| **Split**           | A portion of a Transaction assigned to a specific Category                                                    |
+| **Category**        | A user-defined label for classifying expenses or income (e.g., "Groceries")                                   |
+| **Account**         | A financial container — bank account, cash wallet, or savings account                                         |
+| **Household**       | A group of Users who share financial tracking with equal access — every member can do everything              |
+| **Budget**          | A spending limit set for a Category within a time period (usually monthly)                                    |
+| **Subscription**    | A recurring payment obligation (e.g., Netflix, electricity)                                                   |
+| **Asset**           | Something of value owned (apartment, car, investment portfolio)                                               |
+| **Encumbrance**     | A financial obligation or debt (mortgage, loan)                                                               |
+| **Net Worth**       | Total value of Assets minus total Encumbrances                                                                |
+| **Receipt**         | A photo or scan of a paper proof of purchase, attached to a Transaction                                       |
+| **Promotion**       | A bank offer with conditions that must be met monthly for benefits                                            |
+| **Import Batch**    | A set of Transactions downloaded from a Bank API in one operation                                             |
+| **Exchange Rate**   | The conversion ratio between two currencies on a given date                                                   |
+| **Forecast**        | A prediction of future expenses, receipts, or savings based on historical data                                |
+| **Invitation**      | A pending request for a new User to join a Household; any member can send one                                 |
+| **Main Currency**   | The Household's primary currency, used for consolidated reporting                                             |     | **Balance Snapshot** | A monthly record of total income minus total expenses, used for the savings graph |
+| **Report Export**   | A generated file (PDF or CSV) representing a report, available for download                                   |
+| **Default Account** | The “Gotówka” (Cash) account auto-created when a new Household is set up, in the household’s main currency    |
+
 ---
 
 ### 5.6 Non-Functional Requirements
 
 > These requirements don't map to domain concepts, bounded contexts, or use cases — they are cross-cutting UI and platform concerns. Included here for full traceability against the requirements document.
 
-| Req | Requirement | Notes |
-|-----|-------------|-------|
-| 12 | Web and mobile access (mobile-first, responsive) | Phase 1: responsive web only. Phase 4: dedicated mobile app (native or PWA). |
-| 13 | Dark mode / light mode switching | Theme preference stored per User profile. Toggle available on every screen. |
-| 14 | Modern UI design | Clean, minimal interface with a consistent design system. |
+| Req | Requirement                                      | Notes                                                                        |
+| --- | ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| 12  | Web and mobile access (mobile-first, responsive) | Phase 1: responsive web only. Phase 4: dedicated mobile app (native or PWA). |
+| 13  | Dark mode / light mode switching                 | Theme preference stored per User profile. Toggle available on every screen.  |
+| 14  | Modern UI design                                 | Clean, minimal interface with a consistent design system.                    |
