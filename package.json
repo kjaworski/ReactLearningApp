@@ -9,13 +9,21 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "eslint": "^10.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
     "prettier": "^3.8.3",
     "turbo": "^2.9.14"
   },
   "volta": {
     "node": "24.16.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "eslint --fix",
+    "*.{ts,tsx,json,md}": "prettier --write"
   }
 }
