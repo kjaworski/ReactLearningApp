@@ -11,22 +11,24 @@
 
 > Each color represents a different type of element. In a real workshop these would be physical sticky notes on a wall. Here we use emoji prefixes.
 
-| Color | Symbol | Meaning | Example |
-|-------|--------|---------|---------|
-| 🟧 Orange | Domain Event | Something that **happened** (past tense). The most important element — you start here. | `TransactionRecorded` |
-| 🟦 Blue | Command | An **intention** to do something. Someone or something decided to trigger this action. | `RecordTransaction` |
-| 🟨 Yellow | Actor | The **person** who triggers a command. | `Household Member` |
-| 🟩 Green | Aggregate | The **domain object** that receives the command, enforces rules, and emits the event. | `Transaction` |
-| 🟪 Purple | Policy | An **automated reaction** — "When event X happens, then trigger command Y." Also called a process or reactor. | "When `TransactionRecorded`, then `CheckBudget`" |
-| 📖 Green (light) | Read Model | **Data the UI needs** to display something. Built from events. | Transaction List, Dashboard Summary |
-| 🔴 Red | Hot Spot | An **unresolved question**, risk, or conflict that needs discussion. | "What happens if splits don't sum up?" |
-| ⬜ White | External System | A **third-party** system outside your control. | Bank API, Google OAuth |
+| Color            | Symbol          | Meaning                                                                                                       | Example                                          |
+| ---------------- | --------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| 🟧 Orange        | Domain Event    | Something that **happened** (past tense). The most important element — you start here.                        | `TransactionRecorded`                            |
+| 🟦 Blue          | Command         | An **intention** to do something. Someone or something decided to trigger this action.                        | `RecordTransaction`                              |
+| 🟨 Yellow        | Actor           | The **person** who triggers a command.                                                                        | `Household Member`                               |
+| 🟩 Green         | Aggregate       | The **domain object** that receives the command, enforces rules, and emits the event.                         | `Transaction`                                    |
+| 🟪 Purple        | Policy          | An **automated reaction** — "When event X happens, then trigger command Y." Also called a process or reactor. | "When `TransactionRecorded`, then `CheckBudget`" |
+| 📖 Green (light) | Read Model      | **Data the UI needs** to display something. Built from events.                                                | Transaction List, Dashboard Summary              |
+| 🔴 Red           | Hot Spot        | An **unresolved question**, risk, or conflict that needs discussion.                                          | "What happens if splits don't sum up?"           |
+| ⬜ White         | External System | A **third-party** system outside your control.                                                                | Bank API, Google OAuth                           |
 
 > **How to read the flows below:**
 > Read left to right, like a timeline. The pattern is:
+>
 > ```
 > 🟨 Actor → 🟦 Command → 🟩 Aggregate → 🟧 Event → 🟪 Policy → 🟦 Next Command → ...
 > ```
+>
 > Some events feed into **Read Models** (📖) that the UI displays.
 > Some events trigger **Policies** (🟪) that automatically fire the next command.
 
@@ -66,11 +68,13 @@
 ```
 
 **📖 Read Models produced:**
+
 - User Profile
 - Household Members List
 - Default Category Selection UI
 
 **🔴 Hot Spots (resolved):**
+
 - ✅ HS-1: Default categories — **18 expense + 5 income** (Polish household set). On household creation, user is asked whether to keep defaults or customize.
 - ✅ HS-2: Multi-household — **Design for multi from day 1** (junction table `user_households`, explicit `householdId`), **single-household UX at launch.**
 - ✅ HS-3: Member leaves — **Data stays in household.** Leaving user can choose anonymization. If anonymized, notify others.
@@ -112,6 +116,7 @@
 ```
 
 **🔴 Hot Spots (resolved):**
+
 - ✅ HS-4: Invitation expiry — **7 days.** Single-use tokens. Resendable (new token, old invalidated). Revocable at any time. No shareable links.
 - Can you revoke an invitation? — **Yes** (see HS-4 above).
 - What if the email is already registered in another household? — With multi-household design, user can belong to both (Phase 2+ UX). For MVP single-household, show an informational message.
@@ -145,9 +150,11 @@
 ```
 
 **📖 Read Models produced:**
+
 - Category List (ordered, with icons and colors)
 
 **🔴 Hot Spots:**
+
 - ✅ HS-34: Delete category with transactions? — **Reject deletion.** User must reassign all transactions to another category first. System enforces "no orphaned transactions" invariant.
 - Category hierarchy (subcategories) — needed for MVP or later? → **Phase 2+** (see HS-16)
 - Are categories shared across the household or per-user? → **Shared** (household-level)
@@ -182,6 +189,7 @@
 ```
 
 **📖 Read Models produced:**
+
 - Account List (name, currency, balance)
 
 ---
@@ -197,10 +205,12 @@
 ```
 
 **📖 Read Models updated:**
+
 - Transaction List
 - Dashboard Summary (totals, pie chart)
 
 **🔴 Hot Spots (resolved):**
+
 - ✅ HS-5: Income vs. expense — **Separate `type` field** (`TransactionType`: Income | Expense). Amount is always positive.
 - ✅ HS-6: Backdating — **Yes, any past date allowed.** Date defaults to today.
 - Auto-detect? — **No.** User explicitly selects Income or Expense via the type field.
@@ -225,10 +235,12 @@
 ```
 
 **📖 Read Models updated:**
+
 - Transaction Detail (shows splits per category)
 - Category-level spending totals
 
 **🔴 Hot Spots (resolved):**
+
 - ✅ HS-7: Duplicate category splits — **Yes, allowed.** Two splits with the same category are permitted (not auto-merged).
 - ✅ HS-8: Unsplit — **Yes.** User can remove all splits and reassign the full amount to one category.
 - Minimum splits? — **2 required** when splitting (otherwise it's not a split).
@@ -248,6 +260,7 @@
 ```
 
 **🔴 Hot Spots (resolved):**
+
 - ✅ HS-9: Default filter — **Current month** on page load.
 - ✅ HS-10: Pagination — **Virtual scroll** (windowed rendering) with sticky summary footer. Cursor-based pagination under the hood. No page numbers — users navigate by date/filters.
 - ✅ HS-11: Sum display — **Three values:** total income, total expenses, and net (income − expenses).
@@ -271,6 +284,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **🔴 Hot Spots (resolved):**
+
 - ✅ HS-12: Dashboard period — **Defaults to current month**, user can pick any month.
 - ✅ HS-13: Refresh — **Real-time refresh** after each save (transaction add/edit/split/categorize).
 - ✅ HS-14: Performance — **Calculate on the fly for MVP.** Optimize later if needed.
@@ -291,6 +305,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **🔴 Hot Spots (resolved):**
+
 - ✅ HS-15: Export — **Yes, both PDF and CSV export** available in MVP.
 - Savings visualization — the number for MVP; savings graph (chart) in Phase 2 (Flow 15).
 
@@ -308,6 +323,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **📖 Read Models produced:**
+
 - Budget Overview: per-category limit vs. actual spending
 - Forecast: projected expenses, receipts, savings
 
@@ -331,6 +347,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **🔴 Hot Spots:**
+
 - Alert threshold: exactly at limit, or at 80%/90% warning first?
 - Should split transactions check budget for each split's category?
 - Alert frequency: once per budget period, or every time it's exceeded?
@@ -353,6 +370,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **📖 Read Models updated:**
+
 - Account List (showing original balance + converted to main currency)
 - All transaction/report views for that account show dual amounts
 
@@ -431,6 +449,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **🔴 Hot Spots:**
+
 - Duplicate detection: what if the bank sends the same transaction twice?
 - Auto-categorization: can the system suggest a category based on merchant name?
 - What if the bank API is down? Retry logic? Notify user?
@@ -464,6 +483,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **🔴 Hot Spots:**
+
 - How to match a subscription to a transaction? By amount + account + date range?
 - What tolerance for matching? (exact amount, or within 5%?)
 - Can subscriptions have variable amounts (e.g., electricity)?
@@ -482,6 +502,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **🔴 Hot Spots:**
+
 - File size limit? Accepted formats (JPEG, PNG, PDF)?
 - Storage: cloud (S3/Azure Blob) or local?
 
@@ -507,6 +528,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **🔴 Hot Spots:**
+
 - Which OCR/AI service? (Azure AI Document Intelligence, Google Vision, Tesseract?)
 - How to handle multi-item receipts? One transaction per receipt, or multiple?
 - What if OCR fails or extracts garbage? User must be able to fill in manually.
@@ -542,6 +564,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **🔴 Hot Spots:**
+
 - Condition types: number of transactions, minimum card spend, salary deposit, etc.
 - How to evaluate arbitrary conditions against transaction data?
 - What if a promotion spans multiple accounts?
@@ -609,6 +632,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **🔴 Hot Spots:**
+
 - Inflation rate assumption?
 - Investment return rate assumption?
 - Country-specific pension system rules (ZUS in Poland)?
@@ -628,6 +652,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 ```
 
 **🔴 Hot Spots:**
+
 - Which AI/ML approach? Simple moving average, or full ML model?
 - Confidence level display?
 - User ability to accept/reject AI suggestions?
@@ -922,40 +947,40 @@ cross-cutting UI and platform concerns. Included here for traceability.
 > These are open questions to resolve before or during implementation.
 > MVP hot spots (HS-1 through HS-15 and HS-34) have been **resolved** — see the Resolution column.
 
-| # | Hot Spot | Context | Priority | Resolution |
-|---|----------|---------|----------|------------|
-| HS-1 | What are the default categories? | Identity & Access | MVP | ✅ **18 expense + 5 income** defaults seeded on household creation. Expenses: Mieszkanie, Opłaty i rachunki, Żywność i art. domowe, Transport, Zdrowie, Telekomunikacja, Jedzenie na mieście, Rozrywka i kultura, Ubrania i obuwie, Higiena i uroda, Sport i rekreacja, Edukacja i rozwój, Podróże i wakacje, Prezenty i datki, Oszczędności i inwestycje, Spłata zobowiązań, Zwierzęta, Inne wydatki. Income: Wynagrodzenie, Dodatkowy dochód, Świadczenia i zwroty, Odsetki i inwestycje, Inne przychody. **On household creation, user is asked whether to keep defaults as-is or customize (modify/delete) before proceeding.** |
-| HS-2 | Can a user belong to multiple households? | Identity & Access | MVP | ✅ **Design for multi-household from day 1** (junction table `user_households`, explicit `householdId` on all APIs), **but launch with single-household UX** (no switcher). This avoids a painful migration later (~5% extra upfront effort). |
-| HS-3 | What happens to data if a member leaves? | Identity & Access | MVP | ✅ **Data stays in the household.** Leaving user can choose to anonymize their entries. If anonymized, other members are notified. |
-| HS-4 | Invitation expiry period? | Identity & Access | MVP | ✅ **7 days.** Single-use tokens. Inviter can resend (new token, old invalidated) or revoke at any time. No shareable links. |
-| HS-5 | Income vs. expense: negative amounts or separate type field? | Transaction Management | MVP | ✅ **Separate `type` field** (`TransactionType`: Income or Expense). Amount is always positive. |
-| HS-6 | Can you backdate transactions? | Transaction Management | MVP | ✅ **Yes, any past date.** Date defaults to today. |
-| HS-7 | Can you split into the same category twice? | Transaction Management | MVP | ✅ **Yes, allowed.** Two splits with the same category are permitted (not merged). |
-| HS-8 | Can you unsplit (revert to single category)? | Transaction Management | MVP | ✅ **Yes.** User can remove all splits and reassign the full amount to one category. |
-| HS-9 | Default filter on transaction list page load? | Transaction Management | MVP | ✅ **Current month** as default filter on page load. |
-| HS-10 | Pagination or infinite scroll? | Transaction Management | MVP | ✅ **Virtual scroll** (windowed rendering) with sticky summary footer. Default view = current month. Server-side filtering with cursor-based pagination under the hood. No page numbers — users navigate by date/filters. |
-| HS-11 | Sum: income and expense separately, or net? | Transaction Management | MVP | ✅ **Three values** shown: total income, total expenses, and net (income − expenses). |
-| HS-12 | Dashboard: fixed to current month or selectable? | Reporting | MVP | ✅ **Defaults to current month**, user can pick any month. |
-| HS-13 | Dashboard refresh frequency? | Reporting | MVP | ✅ **Real-time refresh** after each save (transaction add/edit/split/categorize). |
-| HS-14 | Precompute aggregates or calculate on the fly? | Reporting | MVP | ✅ **Calculate on the fly for MVP.** Optimize with precomputed aggregates later if performance requires it. |
-| HS-15 | Export reports to PDF/CSV? | Reporting | MVP | ✅ **Yes, both PDF and CSV export** available in MVP. |
-| HS-16 | Category hierarchy (subcategories)? | Transaction Management | Phase 2+ | |
-| HS-17 | Budget alert threshold: 100% or earlier warning? | Budgeting | Phase 2 | |
-| HS-18 | Split transactions: check budget per split category? | Budgeting | Phase 2 | |
-| HS-19 | Budget alert frequency: once or every overspend? | Budgeting | Phase 2 | |
-| HS-20 | Bank import duplicate detection | Bank Integration | Phase 3 | |
-| HS-21 | Auto-categorization by merchant name? | Bank Integration | Phase 3 | |
-| HS-22 | Bank API downtime: retry logic? | Bank Integration | Phase 3 | |
-| HS-23 | Subscription matching tolerance (amount, date) | Subscription Management | Phase 3 | |
-| HS-24 | Variable-amount subscriptions? | Subscription Management | Phase 3 | |
-| HS-25 | Receipt file size limit and formats | Transaction Management | Phase 3 | |
-| HS-26 | Receipt storage: cloud provider? | Infrastructure | Phase 3 | |
-| HS-27 | Promotion condition types and evaluation engine | Promotion Tracking | Phase 3 | |
-| HS-28 | Which OCR/AI service for receipt scanning? | Transaction Management | Phase 3 | |
-| HS-29 | Multi-item receipts: one transaction or many? | Transaction Management | Phase 3 | |
-| HS-30 | OCR failure fallback: auto-switch to manual entry? | Transaction Management | Phase 3 | |
-| HS-31 | Auto-suggest category from merchant name on receipt? | Transaction Management | Phase 3 | |
-| HS-32 | Retirement: inflation & return rate assumptions | Wealth Management | Phase 4 | |
-| HS-33 | AI forecasting: simple average vs. ML model? | Budgeting | Phase 4 | |
-| HS-34 | Delete category with existing transactions — reject or force reassignment? | Transaction Management | MVP | ✅ **Reject deletion.** User must reassign all transactions to another category first. System enforces "no orphaned transactions" invariant. |
-| HS-35 | What if a promotion spans multiple accounts? | Promotion Tracking | Phase 3 | |
+| #     | Hot Spot                                                                   | Context                 | Priority | Resolution                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ----- | -------------------------------------------------------------------------- | ----------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HS-1  | What are the default categories?                                           | Identity & Access       | MVP      | ✅ **18 expense + 5 income** defaults seeded on household creation. Expenses: Mieszkanie, Opłaty i rachunki, Żywność i art. domowe, Transport, Zdrowie, Telekomunikacja, Jedzenie na mieście, Rozrywka i kultura, Ubrania i obuwie, Higiena i uroda, Sport i rekreacja, Edukacja i rozwój, Podróże i wakacje, Prezenty i datki, Oszczędności i inwestycje, Spłata zobowiązań, Zwierzęta, Inne wydatki. Income: Wynagrodzenie, Dodatkowy dochód, Świadczenia i zwroty, Odsetki i inwestycje, Inne przychody. **On household creation, user is asked whether to keep defaults as-is or customize (modify/delete) before proceeding.** |
+| HS-2  | Can a user belong to multiple households?                                  | Identity & Access       | MVP      | ✅ **Design for multi-household from day 1** (junction table `user_households`, explicit `householdId` on all APIs), **but launch with single-household UX** (no switcher). This avoids a painful migration later (~5% extra upfront effort).                                                                                                                                                                                                                                                                                                                                                                                       |
+| HS-3  | What happens to data if a member leaves?                                   | Identity & Access       | MVP      | ✅ **Data stays in the household.** Leaving user can choose to anonymize their entries. If anonymized, other members are notified.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| HS-4  | Invitation expiry period?                                                  | Identity & Access       | MVP      | ✅ **7 days.** Single-use tokens. Inviter can resend (new token, old invalidated) or revoke at any time. No shareable links.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| HS-5  | Income vs. expense: negative amounts or separate type field?               | Transaction Management  | MVP      | ✅ **Separate `type` field** (`TransactionType`: Income or Expense). Amount is always positive.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-6  | Can you backdate transactions?                                             | Transaction Management  | MVP      | ✅ **Yes, any past date.** Date defaults to today.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| HS-7  | Can you split into the same category twice?                                | Transaction Management  | MVP      | ✅ **Yes, allowed.** Two splits with the same category are permitted (not merged).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| HS-8  | Can you unsplit (revert to single category)?                               | Transaction Management  | MVP      | ✅ **Yes.** User can remove all splits and reassign the full amount to one category.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| HS-9  | Default filter on transaction list page load?                              | Transaction Management  | MVP      | ✅ **Current month** as default filter on page load.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| HS-10 | Pagination or infinite scroll?                                             | Transaction Management  | MVP      | ✅ **Virtual scroll** (windowed rendering) with sticky summary footer. Default view = current month. Server-side filtering with cursor-based pagination under the hood. No page numbers — users navigate by date/filters.                                                                                                                                                                                                                                                                                                                                                                                                           |
+| HS-11 | Sum: income and expense separately, or net?                                | Transaction Management  | MVP      | ✅ **Three values** shown: total income, total expenses, and net (income − expenses).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| HS-12 | Dashboard: fixed to current month or selectable?                           | Reporting               | MVP      | ✅ **Defaults to current month**, user can pick any month.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| HS-13 | Dashboard refresh frequency?                                               | Reporting               | MVP      | ✅ **Real-time refresh** after each save (transaction add/edit/split/categorize).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| HS-14 | Precompute aggregates or calculate on the fly?                             | Reporting               | MVP      | ✅ **Calculate on the fly for MVP.** Optimize with precomputed aggregates later if performance requires it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| HS-15 | Export reports to PDF/CSV?                                                 | Reporting               | MVP      | ✅ **Yes, both PDF and CSV export** available in MVP.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| HS-16 | Category hierarchy (subcategories)?                                        | Transaction Management  | Phase 2+ |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-17 | Budget alert threshold: 100% or earlier warning?                           | Budgeting               | Phase 2  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-18 | Split transactions: check budget per split category?                       | Budgeting               | Phase 2  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-19 | Budget alert frequency: once or every overspend?                           | Budgeting               | Phase 2  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-20 | Bank import duplicate detection                                            | Bank Integration        | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-21 | Auto-categorization by merchant name?                                      | Bank Integration        | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-22 | Bank API downtime: retry logic?                                            | Bank Integration        | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-23 | Subscription matching tolerance (amount, date)                             | Subscription Management | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-24 | Variable-amount subscriptions?                                             | Subscription Management | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-25 | Receipt file size limit and formats                                        | Transaction Management  | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-26 | Receipt storage: cloud provider?                                           | Infrastructure          | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-27 | Promotion condition types and evaluation engine                            | Promotion Tracking      | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-28 | Which OCR/AI service for receipt scanning?                                 | Transaction Management  | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-29 | Multi-item receipts: one transaction or many?                              | Transaction Management  | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-30 | OCR failure fallback: auto-switch to manual entry?                         | Transaction Management  | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-31 | Auto-suggest category from merchant name on receipt?                       | Transaction Management  | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-32 | Retirement: inflation & return rate assumptions                            | Wealth Management       | Phase 4  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-33 | AI forecasting: simple average vs. ML model?                               | Budgeting               | Phase 4  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HS-34 | Delete category with existing transactions — reject or force reassignment? | Transaction Management  | MVP      | ✅ **Reject deletion.** User must reassign all transactions to another category first. System enforces "no orphaned transactions" invariant.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| HS-35 | What if a promotion spans multiple accounts?                               | Promotion Tracking      | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
