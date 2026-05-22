@@ -20,7 +20,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 6. ~~**Prisma setup** (`apps/api/prisma/`) — install Prisma, create initial `schema.prisma` with datasource config, generate client~~ ✅
 7. ~~**ESLint + Prettier** — shared config at root, workspace-specific overrides~~ ✅
 8. ~~**Husky + lint-staged** — pre-commit hook for linting + formatting~~ ✅
-9. **Environment config** — `.env.example` with DATABASE_URL, JWT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_SECRET, NEXTAUTH_URL
+9. ~~**Environment config** — `.env.example` with DATABASE_URL, JWT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_SECRET, NEXTAUTH_URL~~ ✅
 10. **Turborepo pipelines** — configure `turbo.json` for `build`, `dev`, `lint`, `test` tasks with correct dependency graph
 
 **Verification:**
