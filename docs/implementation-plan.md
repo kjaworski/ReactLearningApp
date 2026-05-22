@@ -16,7 +16,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 2. ~~**Scaffold NestJS backend** (`apps/api`) — `nest new` with TypeScript strict mode, remove boilerplate, set up module structure per tech-stack.md~~ ✅
 3. ~~**Scaffold Next.js frontend** (`apps/web`) — `create-next-app` with App Router, TypeScript, Tailwind CSS, ESLint~~ ✅
 4. ~~**Set up shared types package** (`packages/shared`) — `package.json`, `tsconfig.json`, export barrel file. Add `TransactionType` enum and basic DTOs as first shared types~~ ✅
-5. **Docker Compose** — PostgreSQL 16 container for local dev (port 5432), volume for data persistence. Optional: pgAdmin container
+5. ~~**Docker Compose** — PostgreSQL 16 container for local dev (port 5432), volume for data persistence. Optional: pgAdmin container~~ ✅
 6. **Prisma setup** (`apps/api/prisma/`) — install Prisma, create initial `schema.prisma` with datasource config, generate client
 7. **ESLint + Prettier** — shared config at root, workspace-specific overrides
 8. **Husky + lint-staged** — pre-commit hook for linting + formatting
