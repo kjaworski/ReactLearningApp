@@ -10,6 +10,9 @@ out
 build
 .turbo
 
+# prisma generated client
+**/src/generated/prisma
+
 # testing
 coverage
 
