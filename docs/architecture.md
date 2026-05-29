@@ -143,3 +143,78 @@ Technical decisions made during project scaffolding (Phase A). Each entry captur
 - Named volume `pgdata` survives `docker compose down` (only `down -v` deletes it)
 
 **Connection:** `postgresql://finance:finance_dev@localhost:5432/finance_db`
+
+---
+
+# Architecture Decisions — Phase B
+
+Technical decisions made during database schema implementation (Phase B).
+
+---
+
+## ADR-10: Prisma 7 driver adapter (required)
+
+**Decision:** Use `@prisma/adapter-pg` with the `pg` library for all Prisma database connections.
+
+**Why:**
+
+- Prisma 7 removed the built-in query engine; a driver adapter is now **mandatory**
+- `PrismaClient` requires an `adapter` option: `new PrismaClient({ adapter })`
+- The adapter wraps a `pg.Pool` instance, giving direct control over connection pooling
+- This applies to both application code (`PrismaModule`) and the seed script
+
+**Dependencies added:** `@prisma/adapter-pg`, `pg`, `@types/pg`
+
+**Pattern:**
+
+```typescript
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../src/generated/prisma/client';
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+```
+
+---
+
+## ADR-11: Prisma seed via tsx (CommonJS-compatible)
+
+**Decision:** Run the seed script with `tsx` and use the `.then()/.catch()/.finally()` pattern instead of top-level `await`.
+
+**Why:**
+
+- NestJS does not support native ESM (`"type": "module"` in `package.json` breaks NestJS — see PR #8736, closed without merge)
+- Without `"type": "module"`, `.ts` files are treated as CommonJS and cannot use top-level `await`
+- `tsx` handles TypeScript compilation transparently, including ESM imports from Prisma 7's generated client
+- The seed command is configured in `prisma.config.ts` under `migrations.seed`
+
+**Seed execution:** `pnpm exec prisma db seed` → runs `tsx prisma/seed.ts`
+
+---
+
+## ADR-12: Decimal(19,4) for financial amounts
+
+**Decision:** Use `Decimal @db.Decimal(19,4)` for all monetary fields (`initialBalance`, `amount` in Transaction and TransactionSplit).
+
+**Why:**
+
+- `Float` (IEEE 754) causes rounding errors with financial calculations (e.g., `0.1 + 0.2 ≠ 0.3`)
+- `Decimal(19,4)` stores exact values — 19 total digits, 4 decimal places
+- Supports amounts up to ~999,999,999,999,999.9999 (sufficient for household finance)
+- PostgreSQL's `numeric` type handles this natively with no precision loss
+- Prisma maps `Decimal` to JavaScript's `Decimal.js` instances
+
+---
+
+## ADR-13: Table naming convention (snake_case via @@map)
+
+**Decision:** Use `@@map("snake_case_name")` on all models to map PascalCase Prisma model names to snake_case PostgreSQL table names.
+
+**Why:**
+
+- PostgreSQL convention is snake_case for table names
+- Prisma convention is PascalCase for model names
+- `@@map` keeps both worlds happy: `model UserHousehold` → table `user_households`
+- Column names remain camelCase (Prisma default, quoted in PostgreSQL) — consistent with TypeScript property naming
