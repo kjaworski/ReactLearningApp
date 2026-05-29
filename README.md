@@ -34,7 +34,14 @@ cp .env.example .env
 # 3. Start PostgreSQL
 docker compose up -d
 
-# 4. Run both apps in dev mode
+# 4. Run database migrations and seed (from apps/api/)
+cd apps/api
+pnpm exec prisma generate
+pnpm exec prisma migrate dev
+pnpm exec prisma db seed
+cd ../..
+
+# 5. Run both apps in dev mode
 pnpm dev
 ```
 

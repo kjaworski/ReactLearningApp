@@ -48,36 +48,39 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 **Steps:**
 
-1. **Identity & Access models** — `User`, `Household`, `UserHousehold` (junction table for multi-household readiness per HS-2), `Invitation`
+1. ~~**Identity & Access models** — `User`, `Household`, `UserHousehold` (junction table for multi-household readiness per HS-2), `Invitation`~~ ✅
    - User: id, email, displayName, passwordHash (nullable — Google users won't have one), googleId (nullable), createdAt
-   - Household: id, name, mainCurrency (default "PLN"), createdAt
+   - Household: id, name, mainCurrency (no default — user must choose during registration), createdAt
    - UserHousehold: userId, householdId, joinedAt (composite PK)
    - Invitation: id, householdId, inviterUserId, inviteeEmail, token (unique), status (PENDING/ACCEPTED/EXPIRED/REVOKED), expiresAt, createdAt
 
-2. **Transaction Management models** — `Account`, `Category`, `Transaction`, `TransactionSplit`
+2. ~~**Transaction Management models** — `Account`, `Category`, `Transaction`, `TransactionSplit`~~ ✅
    - Account: id, householdId, name, currency, initialBalance, isActive (soft deactivate), isDefault, createdAt
    - Category: id, householdId, name, icon (nullable), color (nullable), type (EXPENSE/INCOME), sortOrder, createdAt
    - Transaction: id, householdId, accountId, userId, categoryId, type (INCOME/EXPENSE), amount (Decimal), currency, date, comment (nullable), createdAt, updatedAt
    - TransactionSplit: id, transactionId, categoryId, amount (Decimal), createdAt
 
-3. **Indexes and constraints** — householdId on all household-scoped tables (for query performance and row-level scoping), unique constraints (User.email, Invitation.token), cascade deletes where appropriate
+3. ~~**Indexes and constraints** — householdId on all household-scoped tables (for query performance and row-level scoping), unique constraints (User.email, Invitation.token), cascade deletes where appropriate~~ ✅
 
-4. **Seed script** — `prisma/seed.ts` with the 23 default categories (18 expense + 5 income from HS-1)
+4. ~~**Seed script** — `prisma/seed.ts` with the 23 default categories (18 expense + 5 income from HS-1, English names)~~ ✅
 
-5. **Run first migration** — `prisma migrate dev --name init`
+5. ~~**Run first migration** — `prisma migrate dev --name init`~~ ✅
+
+> **Phase B completed** — all 5 steps done and verified. Schema defines 8 models, 3 enums, and all indexes/constraints. Migration `20260529121949_init` applied. Seed populates 1 user, 1 household, 1 account, and 23 categories.
 
 **Verification:**
 
-- `npx prisma migrate dev` runs without errors
-- `npx prisma studio` opens and shows all tables with correct columns and relationships
-- `npx prisma db seed` populates default categories
-- Generated Prisma Client types match the domain model from ddd-analysis.md section 5.2
+- ~~`npx prisma migrate dev` runs without errors~~ ✅
+- ~~`npx prisma studio` opens and shows all tables with correct columns and relationships~~ ✅
+- ~~`npx prisma db seed` populates default categories~~ ✅
+- ~~Generated Prisma Client types match the domain model from ddd-analysis.md section 5.2~~ ✅
 
 **Relevant files:**
 
 - `apps/api/prisma/schema.prisma` — all model definitions
-- `apps/api/prisma/seed.ts` — default categories
-- `apps/api/prisma/migrations/` — generated migration files
+- `apps/api/prisma/seed.ts` — default categories and dev data
+- `apps/api/prisma/migrations/20260529121949_init/` — initial migration SQL
+- `apps/api/prisma.config.ts` — Prisma CLI config (schema path, seed command, datasource URL)
 
 **Key decisions baked in:**
 
@@ -87,6 +90,8 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - Invitation expiry: 7 days (HS-4)
 - TransactionType as enum (HS-5)
 - Category has `type` field (EXPENSE/INCOME) to separate the two lists
+- Default category names stored in English; i18n/translation support deferred to a future phase
+- `mainCurrency` has no default — user selects currency during household registration
 
 ---
 
@@ -110,7 +115,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
    - **Registration flow** (UC-6 steps 1-6):
      - `POST /auth/register` — email + password. Hash password with bcrypt. Create User + Household + UserHousehold + default Account + default Categories
      - `POST /auth/google` — Google OAuth callback. Create or find user, same household logic
-     - On household creation: seed 23 default categories + "Gotówka" account (per UC-6, HS-1)
+     - On household creation: seed 23 default categories + "Cash" account (per UC-6, HS-1)
    - **Login flow** (UC-6 step 2-3):
      - `POST /auth/login` — validate credentials, return JWT (access + refresh tokens)
      - JWT payload: `{ userId, householdId, email }`
@@ -407,6 +412,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - Mobile app (Phase 4)
 - Custom dashboard widgets (Phase 4)
 - AWS deployment (post-MVP — develop locally first)
+- i18n / translation support for category names and UI (post-MVP — English-only at launch, default category names stored in English)
 
 **Key architectural decisions:**
 
@@ -414,3 +420,5 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - CQRS infrastructure from day 1 even though MVP calculates on the fly (HS-14) — event handlers are no-ops but the pattern is established
 - Multi-household junction table from day 1 (HS-2) — no migration needed later
 - Validation: start with Zod in shared + class-validator in backend (decide on unification during implementation per tech-stack.md note)
+- Default category names in English — i18n/translation deferred to post-MVP. When implemented, consider storing a translation key on Category and resolving display names at the UI layer based on user locale
+- No default value for `mainCurrency` on Household — user explicitly selects currency during registration to support multiple countries

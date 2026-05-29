@@ -11,3 +11,154 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum InvitationStatus {
+  ACCEPTED
+  EXPIRED
+  PENDING
+  REVOKED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  displayName   String
+  passwordHash  String?
+  googleId      String?   @unique
+  createdAt     DateTime  @default(now())
+
+  households    UserHousehold[]
+  transactions  Transaction[]
+  invitations   Invitation[]  @relation("InviterRelation")
+  
+  @@map("users")
+}
+
+model Household {
+  id            String    @id @default(uuid())
+  name          String
+  mainCurrency  String
+  createdAt     DateTime  @default(now())
+
+  members       UserHousehold[]
+  accounts      Account[]
+  categories    Category[]
+  transactions  Transaction[]
+  invitations   Invitation[]
+
+  @@map("households")
+}
+
+model UserHousehold {
+  userId        String
+  householdId   String
+  joinedAt      DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@id([userId, householdId])
+  @@map("user_households")
+}
+
+model Invitation {
+  id            String            @id @default(uuid())
+  householdId   String
+  inviterUserId String
+  inviteeEmail  String
+  token         String            @unique
+  status        InvitationStatus  @default(PENDING)
+  expiresAt     DateTime
+  createdAt     DateTime          @default(now())
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  inviter   User      @relation("InviterRelation", fields: [inviterUserId], references: [id])
+
+  @@index([householdId])
+  @@map("invitations")
+}
+
+model Account {
+  id              String    @id @default(uuid())
+  householdId     String
+  name            String
+  currency        String
+  initialBalance  Decimal   @default(0) @db.Decimal(19, 4)
+  isActive        Boolean   @default(true)
+  isDefault       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  household     Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+
+  @@index([householdId])
+  @@map("accounts")
+}
+
+model Category {
+  id          String        @id @default(uuid())
+  householdId String
+  name        String
+  icon        String?
+  color       String?
+  type        CategoryType
+  sortOrder   Int           @default(0)
+  createdAt   DateTime      @default(now())
+
+  household         Household           @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+  transactionSplits TransactionSplit[]
+
+  @@index([householdId])
+  @@map("categories")
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  householdId String
+  accountId   String
+  userId      String
+  categoryId  String
+  type        TransactionType
+  amount      Decimal         @db.Decimal(19, 4)
+  currency    String
+  date        DateTime        @db.Date
+  comment     String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  household Household           @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  account   Account             @relation(fields: [accountId], references: [id])
+  user      User                @relation(fields: [userId], references: [id])
+  category  Category            @relation(fields: [categoryId], references: [id])
+  splits    TransactionSplit[]
+
+  @@index([householdId])
+  @@index([date])
+  @@index([householdId, date])
+  @@map("transactions")
+}
+
+model TransactionSplit {
+  id            String    @id @default(uuid())
+  transactionId String
+  categoryId    String
+  amount        Decimal   @db.Decimal(19, 4)
+  createdAt     DateTime  @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  category    Category    @relation(fields: [categoryId], references: [id])
+
+  @@index([transactionId])
+  @@map("transaction_splits")
+}

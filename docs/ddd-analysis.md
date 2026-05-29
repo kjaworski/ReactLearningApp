@@ -178,8 +178,8 @@
   2. Login: credentials or Google
   3. System issues a session/token
   4. If first user → system creates a new Household and adds this member
-  5. System auto-creates a default account ("Gotówka" / Cash, in main currency)
-  6. System offers **default categories** (18 expense + 5 income, Polish household set) — user can keep all, customize (modify/delete some), or start empty
+  5. System auto-creates a default account ("Cash", in main currency)
+  6. System offers **default categories** (18 expense + 5 income, English names) — user can keep all, customize (modify/delete some), or start empty
   7. If invited → system adds the user to the existing Household
 - **Outcome:** Authenticated user with full access to their household
 - **Command:** `RegisterUser`, `AuthenticateUser`, `SeedDefaultCategories`, `CreateDefaultAccount`
@@ -312,7 +312,7 @@
 - **Actor:** Household Member (or System during household setup)
 - **Trigger:** User opens account settings, or household is created
 - **Flow:**
-  1. On household creation, system auto-creates a default account ("Gotówka" / Cash, in the household's main currency)
+  1. On household creation, system auto-creates a default account ("Cash", in the household's main currency)
   2. User can add accounts (name, currency, initial balance)
   3. User can rename or deactivate accounts
   4. Deactivation is soft — historical transactions remain linked
@@ -694,7 +694,7 @@ End of month (or on-demand)
 | **Invitation**      | A pending request for a new User to join a Household; any member can send one                                 |
 | **Main Currency**   | The Household's primary currency, used for consolidated reporting                                             |     | **Balance Snapshot** | A monthly record of total income minus total expenses, used for the savings graph |
 | **Report Export**   | A generated file (PDF or CSV) representing a report, available for download                                   |
-| **Default Account** | The “Gotówka” (Cash) account auto-created when a new Household is set up, in the household’s main currency    |
+| **Default Account** | The "Cash" account auto-created when a new Household is set up, in the household's main currency              |
 
 ---
 

@@ -13,7 +13,7 @@
 │                                                                  │
 │  apps/                                                           │
 │  ├── web/          Next.js 15 (App Router)     ← Frontend       │
-│  └── api/          NestJS 10+ (latest stable)  ← Backend API    │
+│  └── api/          NestJS 11 (latest stable)   ← Backend API    │
 │                                                                  │
 │  packages/                                                       │
 │  └── shared/       Shared TypeScript types     ← DTOs, enums    │
@@ -56,10 +56,10 @@
 
 | Category           | Choice                                                    | Why                                                                                                                                                                                                                                                                                                            |
 | ------------------ | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**      | **NestJS 10+** (latest stable)                            | Modular architecture maps 1:1 to bounded contexts. Built-in DI, CQRS module, guards (like .NET `[Authorize]`), pipes (like .NET model validation). Feels like ASP.NET Core.                                                                                                                                    |
+| **Framework**      | **NestJS 11** (latest stable)                             | Modular architecture maps 1:1 to bounded contexts. Built-in DI, CQRS module, guards (like .NET `[Authorize]`), pipes (like .NET model validation). Feels like ASP.NET Core.                                                                                                                                    |
 | **Language**       | **TypeScript**                                            | Shared types with frontend                                                                                                                                                                                                                                                                                     |
 | **Database**       | **PostgreSQL 16**                                         | Relational integrity for financial data. JSONB for semi-structured data (OCR results, bank imports, promotion rules). Industry standard for fintech.                                                                                                                                                           |
-| **ORM**            | **Prisma**                                                | Type-safe auto-generated client, declarative schema, easy migrations, great DX. Most popular TypeScript ORM.                                                                                                                                                                                                   |
+| **ORM**            | **Prisma 7**                                              | Type-safe auto-generated client, declarative schema, easy migrations, great DX. Most popular TypeScript ORM. V7 requires a driver adapter (`@prisma/adapter-pg`).                                                                                                                                              |
 | **Auth (backend)** | **Passport.js + JWT** (`@nestjs/passport`, `@nestjs/jwt`) | Validates JWT tokens issued by NextAuth.js. `JwtAuthGuard` = equivalent of .NET `[Authorize]`.                                                                                                                                                                                                                 |
 | **Validation**     | **class-validator + class-transformer**                   | Decorator-based DTO validation (like .NET `[Required]`, `[MaxLength]`). NestJS pipes auto-validate.                                                                                                                                                                                                            |
 | **CQRS**           | **@nestjs/cqrs**                                          | Separate command/query handlers per bounded context. Events bus for cross-context communication. **Note:** the event bus is in-memory — works for a single instance. For multi-instance deployment (ECS Fargate with multiple tasks), add an external event bus (e.g., Redis pub/sub or Amazon SNS/SQS) later. |
@@ -211,7 +211,7 @@ papaparse                      ← CSV export
 @nestjs/swagger                ← API docs
 @nestjs/config                 ← Environment config
 @nestjs/schedule               ← Cron jobs
-@prisma/client, prisma         ← ORM
+@prisma/client, prisma         ← ORM (Prisma 7 + @prisma/adapter-pg driver adapter)
 class-validator, class-transformer ← DTO validation
 nestjs-pino, pino              ← Logging
 ```
