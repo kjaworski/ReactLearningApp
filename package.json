@@ -20,7 +20,7 @@
     "turbo": "^2.9.14"
   },
   "volta": {
-    "node": "24.16.0"
+    "node": "24.22.1"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",
