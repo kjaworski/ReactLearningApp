@@ -541,7 +541,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 
 **🔴 Hot Spots:**
 
-- Which OCR/AI service? (Azure AI Document Intelligence, Google Vision, Tesseract?)
+- Which OCR/AI service? (Azure AI Document Intelligence, Amazon Textract, Google Vision, Tesseract?)
 - How to handle multi-item receipts? One transaction per receipt, or multiple?
 - What if OCR fails or extracts garbage? User must be able to fill in manually.
 - Should the system suggest a category based on merchant name?
@@ -947,7 +947,7 @@ cross-cutting UI and platform concerns. Included here for traceability.
 
 🌗 Req 13 — Dark Mode / Light Mode
   • Theme toggle available from any screen
-  • User preference persisted per User (stored in user profile)
+  • MVP: preference remembered in the browser; storing it in the user profile can come later
 
 🎨 Req 14 — Modern UI Design
   • Clean, minimal interface with consistent design system

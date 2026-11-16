@@ -27,7 +27,7 @@ pnpm exec prisma db seed      # Seed dev data
 pnpm dev          # Start in watch mode (port 3001)
 pnpm build        # Production build
 pnpm test         # Run unit tests (Vitest)
-pnpm test:e2e     # Run E2E tests (Vitest + Supertest)
+pnpm test:e2e     # Run E2E tests (Vitest + Supertest) — the scaffold test fails until C3 replaces it
 ```
 
 ## Database
@@ -56,12 +56,12 @@ apps/api/
 ├── vitest.config.e2e.ts      # E2E tests (*.e2e-spec.ts)
 ├── src/
 │   ├── generated/prisma/     # Generated Prisma client (gitignored)
-│   ├── modules/
-│   │   ├── identity/         # User, Household, Invitation, Auth
-│   │   ├── transaction/      # Transaction, Category, Account
-│   │   └── reporting/        # Dashboard, Reports, Export
-│   ├── common/               # Guards, decorators, filters, interfaces
-│   ├── prisma/               # PrismaModule (global)
+│   ├── modules/              # Built in Phases C–E:
+│   │   ├── identity/         #   User, Household, Invitation, Auth
+│   │   ├── transaction/      #   Transaction, Category, Account
+│   │   └── reporting/        #   Dashboard, Reports, Export
+│   ├── common/               # Guards, decorators, filters — from Phase C
+│   ├── prisma/               # PrismaModule + PrismaService — from C2
 │   ├── app.module.ts
 │   └── main.ts
 └── test/                     # E2E tests

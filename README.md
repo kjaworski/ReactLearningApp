@@ -13,7 +13,7 @@ A full-stack web application for tracking personal and household finances, built
 | Monorepo | pnpm 12, Turborepo 2.11                                      |
 | Quality  | ESLint 10, Prettier 3.10, Husky 9 + lint-staged 17           |
 
-Why each tool was chosen, the module structure, and the deployment options on AWS and Azure: [docs/tech-stack.md](docs/tech-stack.md). Architecture decisions: [docs/architecture.md](docs/architecture.md).
+Why each tool was chosen, the module structure, CI, infrastructure as code, and the deployment options on AWS, Azure, and AKS: [docs/tech-stack.md](docs/tech-stack.md). Architecture decisions: [docs/architecture.md](docs/architecture.md).
 
 ## Prerequisites
 
@@ -61,7 +61,7 @@ ReactLearningApp/
 │   │   ├── prisma/           # Prisma schema & migrations
 │   │   ├── src/
 │   │   │   ├── generated/    # Prisma client (gitignored)
-│   │   │   ├── modules/      # DDD-aligned modules
+│   │   │   ├── modules/      # DDD modules (built in Phases C–E)
 │   │   │   │   ├── identity/
 │   │   │   │   ├── transaction/
 │   │   │   │   └── reporting/

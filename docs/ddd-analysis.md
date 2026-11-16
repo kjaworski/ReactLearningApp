@@ -333,11 +333,11 @@
 ### Process 1: Transaction Recording Flow
 
 ```
-User fills form (selects type: Income/Expense) → Validate input → Save Transaction → Update Account Balance
+User fills form (selects type: Income/Expense) → Validate input → Save Transaction
                                   → (optional) Split into categories
                                   → (optional) Attach receipt
                                   → Emit event: TransactionRecorded
-                                  → Update Dashboard Cache (real-time)
+                                  → Dashboard and account balances refresh (calculated on the fly, HS-14)
                                   → Check Budget thresholds
                                       → If exceeded → Emit: BudgetExceeded → Send Alert
 ```
@@ -709,8 +709,8 @@ End of month (or on-demand)
 
 > These requirements don't map to domain concepts, bounded contexts, or use cases — they are cross-cutting UI and platform concerns. Included here for full traceability against the requirements document.
 
-| Req | Requirement                                      | Notes                                                                        |
-| --- | ------------------------------------------------ | ---------------------------------------------------------------------------- |
-| 12  | Web and mobile access (mobile-first, responsive) | Phase 1: responsive web only. Phase 4: dedicated mobile app (native or PWA). |
-| 13  | Dark mode / light mode switching                 | Theme preference stored per User profile. Toggle available on every screen.  |
-| 14  | Modern UI design                                 | Clean, minimal interface with a consistent design system.                    |
+| Req | Requirement                                      | Notes                                                                                                                                                           |
+| --- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 12  | Web and mobile access (mobile-first, responsive) | Phase 1: responsive web only. Phase 4: dedicated mobile app (native or PWA).                                                                                    |
+| 13  | Dark mode / light mode switching                 | Toggle available on every screen. The MVP remembers the choice in the browser (implementation-plan.md, Phase F); storing it in the User profile can come later. |
+| 14  | Modern UI design                                 | Clean, minimal interface with a consistent design system.                                                                                                       |

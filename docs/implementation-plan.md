@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then frontend. Start with monorepo scaffolding → Prisma schema → NestJS modules (identity → transaction → reporting) → Next.js frontend → polish. Each phase is independently verifiable.
+Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then frontend. Start with monorepo scaffolding → Prisma schema → NestJS modules (identity → transaction → reporting) → Next.js frontend → polish. Each phase is independently verifiable. From Phase C on, a GitHub Actions workflow checks every push.
 
 ---
 
@@ -18,7 +18,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 4. ~~**Set up shared types package** (`packages/shared`) — `package.json`, `tsconfig.json`, export barrel file. Add `TransactionType` enum as the first shared type~~ ✅
 5. ~~**Docker Compose** — PostgreSQL 18 container for local dev (port 5432), volume for data persistence. Optional: pgAdmin container~~ ✅
 6. ~~**Prisma setup** (`apps/api/prisma/`) — install Prisma, create initial `schema.prisma` with datasource config, generate client~~ ✅
-7. ~~**ESLint + Prettier** — shared config at root, workspace-specific overrides~~ ✅
+7. ~~**ESLint + Prettier** — one Prettier config at the root, a flat ESLint config in each package~~ ✅
 8. ~~**Husky + lint-staged** — pre-commit hook for linting + formatting~~ ✅
 9. ~~**Environment config** — one `.env.example` per app: `apps/api` (DATABASE_URL, JWT settings) and `apps/web` (NEXT_PUBLIC_API_URL)~~ ✅
 10. ~~**Turborepo pipelines** — configure `turbo.json` for `build`, `dev`, `lint`, `test` tasks with correct dependency graph~~ ✅
@@ -29,7 +29,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 - `pnpm install` succeeds
 - `turbo dev` starts both Next.js (port 3000) and NestJS (port 3001) concurrently
-- `docker compose up -d` starts PostgreSQL, NestJS connects to it
+- `docker compose up -d` starts PostgreSQL (the API connects to it from C2 on)
 - `packages/shared` types are importable from both `apps/web` and `apps/api`
 - `turbo lint` passes on all workspaces
 
@@ -96,6 +96,42 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 ---
 
+## Continuous Integration: GitHub Actions — _alongside all phases_
+
+> A workflow in `.github/workflows/` runs the checks a developer runs before pushing, on every push and pull request. It starts small and grows with the app (architecture.md ADR-17).
+
+**Steps:**
+
+- **CI-1** — First workflow, `.github/workflows/ci.yml`: on every push to `main` and every pull request, install dependencies, then run `pnpm format:check`, `pnpm lint`, `pnpm build`, `pnpm test` — _next_
+- **CI-2** — Keep the workflow safe: Dependabot version updates for GitHub Actions; actions locked to exact commits (`gh actions-lock`, or full-length SHAs); optionally a ruleset on `main` that requires the CI check (changes then go through pull requests)
+- **CI-3** — With C3: the e2e smoke test against a PostgreSQL 18 service container, after `prisma migrate deploy`
+- **CI-4** — With the Docker step (post-MVP): build the API and web images
+- **CD** — With each cloud (post-MVP): deploy workflows that sign in with OIDC; infrastructure previews (`terraform plan`, Bicep `what-if`) on pull requests, applied on `main` after approval in a GitHub environment
+
+**Notes for CI-1:**
+
+- CI only checks and reports — it never fixes or commits anything. Fixing stays local: the editor (Prettier is the workspace's default formatter), the pre-commit hook (lint-staged), `pnpm format`, and a `lint:fix` script. `permissions: contents: read` enforces this: the workflow's token can't push
+- `apps/api`'s `lint` script ends with `--fix` (Nest scaffold default), so in CI it would fix problems on the runner and pass instead of failing. Make `lint` check-only, as in `apps/web` and `packages/shared`, and move `--fix` to a new `lint:fix` script
+- Warnings don't fail ESLint: `apps/api` sets `no-floating-promises` and `no-unsafe-argument` to `warn`, so CI would list them and stay green. To fail on them, raise them to `error` or add `--max-warnings 0` to `lint`
+- Feedback: a failed check on the commit or pull request, the log of the failing step, and a GitHub notification (Settings → Notifications → Actions — can be limited to failed runs). `actions/setup-node` also registers problem matchers that turn ESLint and TypeScript errors into annotations on the file and line
+- A `concurrency` group cancels a run when a newer commit arrives on the same branch
+- Versions come from `package.json`, not from the workflow: `pnpm/action-setup` reads `packageManager`; `actions/setup-node` with `node-version-file: package.json` reads the Volta pin. `cache: pnpm` caches the pnpm store
+- In CI, `pnpm install` refuses to change the lockfile (frozen lockfile is automatic)
+- From C2 on, the API imports the generated Prisma client, which is gitignored: CI then has to run `prisma generate` before lint, build, and test — for example as a Turborepo task they depend on
+- Later, when builds get slow: cache Turborepo's `.turbo` folder with `actions/cache`
+- When it's green: a status badge and a CI row in the README
+
+**Verification:**
+
+- A push to `main` shows a green check on the commit; the Actions tab shows the log of each step
+- A pull request with a formatting or lint error fails the check, and the run leaves the code unchanged
+- A lint error appears as an annotation on the file and line — if not, check whether Turborepo's `package:task:` prefix in front of each log line is the reason (`--log-prefix=none`)
+- The workflow file contains no Node.js or pnpm version
+
+**Relevant files:** `.github/workflows/ci.yml`, `.github/dependabot.yml`, `apps/api/package.json` (lint scripts), `README.md` (badge)
+
+---
+
 ## Phase C: Backend — Identity & Access Module — _depends on Phase B_
 
 > Build UC-6 (Register & Login), UC-16 (Invite Member), household creation, default categories/account seeding. This is the auth foundation everything else depends on.
@@ -104,7 +140,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 **Progress** — Phase C is built in small learning steps:
 
-- **C1** — Configuration: `@nestjs/config` loads `apps/api/.env`; the app refuses to start when a required variable is missing — _next_
+- **C1** — Configuration: `@nestjs/config` loads `apps/api/.env`; the app refuses to start when a required variable is missing — _after CI-1_
 - **C2** — Database access: `PrismaModule` + `PrismaService`; the first endpoint, `GET /health`, checks the database connection
 - **C3** — Logging and API docs: Pino logging, Swagger UI at `/api/docs`, CORS for `http://localhost:3000`; the scaffold e2e test (still expects `GET /` → "Hello World!") becomes a `GET /health` smoke test
 - **C4** — Register _(learning version)_: `POST /auth/register` — DTO validation, Argon2id password hash, duplicate email → 409
@@ -120,7 +156,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 **Steps:**
 
 1. **Foundation** (C1–C3):
-   - `ConfigModule` (global) — loads `apps/api/.env`, validates required variables at startup
+   - `ConfigModule` (global) — loads `apps/api/.env`, validates required variables at startup. `JWT_REFRESH_EXPIRES_IN` isn't used by this plan (no refresh tokens: C5 issues a short-lived JWT, C7 switches to sessions) — remove it from `.env.example` and the README
    - `PrismaModule` (global) — wraps the Prisma client, handles the connection lifecycle; `GET /health`
    - Pino logger, Swagger UI (`@nestjs/swagger`, API groups by module), CORS
 
@@ -426,13 +462,14 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 - AI budget forecasting (Phase 4)
 - Mobile app (Phase 4)
 - Custom dashboard widgets (Phase 4)
-- Cloud deployment — AWS first, then Azure, later Kubernetes/AKS (post-MVP — develop locally first; learning path in tech-stack.md)
+- Cloud deployment and infrastructure as code — AWS (Terraform) first, then Azure (Bicep), later Kubernetes on AKS (Terraform) (post-MVP — develop locally first; learning path in tech-stack.md, architecture.md ADR-18)
 - i18n / translation support for category names and UI (post-MVP — English-only at launch, default category names stored in English)
 
 **Key architectural decisions:**
 
 - Backend-first development (familiar for .NET dev, provides working APIs for frontend)
 - Auth: a hand-built learning version first, then Better Auth (architecture.md ADR-16)
+- CI on GitHub Actions from Phase C on; deployments later sign in to the clouds with OIDC (architecture.md ADR-17)
 - CQRS infrastructure from day 1 even though MVP calculates on the fly (HS-14) — event handlers are no-ops but the pattern is established
 - Multi-household junction table from day 1 (HS-2) — no migration needed later
 - Validation: start with Zod in shared + class-validator in backend (decide on unification during implementation per tech-stack.md note)

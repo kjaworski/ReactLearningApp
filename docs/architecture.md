@@ -159,7 +159,7 @@ Technical decisions made during project scaffolding (Phase A). Each entry captur
 - Consistent environment across machines
 - `restart: unless-stopped` keeps it running across Docker restarts
 - Named volume `pgdata` survives `docker compose down` (only `down -v` deletes it)
-- PostgreSQL 18 is the latest stable major (19 is still a release candidate) and is supported by AWS RDS, the planned production database
+- PostgreSQL 18 is the latest stable major (19 is still a release candidate) and is supported by the managed PostgreSQL services of both planned clouds (Amazon RDS, Azure Database for PostgreSQL flexible server)
 
 **Key config:** the volume is mounted at `/var/lib/postgresql`, not `/var/lib/postgresql/data` — since version 18 the image stores data in a version-specific subfolder (`/var/lib/postgresql/18/docker`), which makes future major upgrades with `pg_upgrade` easier.
 
@@ -316,3 +316,74 @@ Technical decisions made while building the Identity & Access module (Phase C).
 - Hand-built auth only — teaches the most, but every security-sensitive feature (Google sign-in, password reset, rate limiting) would be ours to get right
 - NextAuth.js (Auth.js) — in maintenance mode
 - Hosted identity providers (Auth0/Okta, Microsoft Entra ID, AWS Cognito, Clerk, self-hosted Keycloak) — the enterprise standard (the API validates their tokens with public keys from a JWKS endpoint), but an external dependency with per-user pricing beyond the free tiers
+
+---
+
+# Architecture Decisions — CI/CD and Infrastructure
+
+Cross-cutting decisions about how the app is checked, built, and deployed. CI starts with Phase C; cloud deployment and infrastructure as code come post-MVP (tech-stack.md, Deployment).
+
+---
+
+## ADR-17: CI/CD on GitHub Actions
+
+**Decision:** GitHub Actions checks every push to `main` and every pull request — format, lint, build, tests. Post-MVP, deployments run on GitHub Actions too and sign in to AWS and Azure with OpenID Connect (OIDC). The exception is AWS Amplify, which builds the frontend from the repository itself.
+
+**Why:**
+
+- The repository is on GitHub, so the results appear on commits and pull requests without a second system
+- The repository is public: standard GitHub-hosted runners are free
+- With OIDC, every workflow run gets a short-lived token that AWS (an IAM role) and Azure (a user-assigned managed identity with a federated credential) exchange for temporary access — no long-lived cloud keys are stored in GitHub
+- Official actions exist for both clouds and both IaC tools: `aws-actions/configure-aws-credentials`, `azure/login`, `azure/bicep-deploy`, `hashicorp/setup-terraform`
+- Azure Pipelines concepts map almost one to one (table in tech-stack.md)
+
+**Key config:**
+
+- CI only verifies: it runs check-only commands (`prettier --check`, ESLint without `--fix`) and reports the result; fixing happens locally (editor, pre-commit hook). It never commits — its read-only token couldn't push anyway
+- The `GITHUB_TOKEN` gets `permissions: contents: read` by default; only deploy jobs add `id-token: write`, which OIDC needs
+- Tool versions come from the root `package.json`, not from the workflow: `pnpm/action-setup` reads `packageManager`, and `actions/setup-node` with `node-version-file: package.json` reads the Volta pin (`volta.node`)
+- pnpm installs with a frozen lockfile automatically when it detects CI
+- Third-party actions are locked to exact commits — a workflow dependency lockfile (`gh actions-lock`) or full-length commit SHAs — and Dependabot keeps them current
+- Deployment secrets and approvals belong to GitHub environments, not to repository-wide secrets
+
+**Security note:** the repository is public, so anyone can open a pull request. Workflows triggered by pull requests from forks get a read-only token and no secrets; `pull_request_target` must never be combined with checking out the pull request's code.
+
+**Alternatives considered:**
+
+- Azure Pipelines — known from work, but a second system next to GitHub; learning GitHub Actions is part of the goal
+- AWS CodePipeline / CodeBuild — would tie the pipeline to one cloud while the app targets two
+
+---
+
+## ADR-18: Infrastructure as code — Terraform for AWS and AKS, Bicep for Azure
+
+**Decision:** Every cloud environment is created from code (post-MVP):
+
+- AWS → **Terraform**
+- Azure managed services (App Service, Container Apps, PostgreSQL, Blob Storage, Key Vault, …) → **Bicep**, deployed as a deployment stack
+- AKS → **Terraform** (`azurerm` and `azapi` providers) creates the cluster; the workloads are Kubernetes manifests that the pipeline applies
+
+**Why:**
+
+- Both tools are learning goals; each is used where it is strongest
+- Bicep only targets Azure, so AWS needs Terraform — or a third tool (CloudFormation / CDK)
+- Bicep on Azure: new resource types and API versions are available on day one, there is no state file (Azure Resource Manager knows what is deployed), `what-if` previews changes, and a deployment stack can delete resources that were removed from the template
+- Terraform on AKS: the AKS step reuses a tool already learned on AWS, so its new material is Kubernetes — and Terraform shows how one tool spans two clouds
+- The AKS environment needs some of the same Azure resources as the Bicep environment (PostgreSQL, Key Vault, container registry), so both tools are compared on identical resources
+
+**Consequences:**
+
+- Terraform keeps a state file that can contain secrets in plain text, so state lives only in a private remote backend: an S3 bucket (versioning, encryption, `use_lockfile` locking) for AWS, Azure Blob Storage (Microsoft Entra ID sign-in, blob lease locking) for AKS. Both are created once by hand, before the first `terraform init`
+- Bicep has no state to protect; the template stays the source of truth — changes made in the portal can be overwritten by the next deployment
+- The cluster and its workloads are separate: Terraform's Kubernetes provider warns against creating a cluster and its Kubernetes resources in the same configuration
+- `azapi`, a thin layer over the Azure REST API like Bicep, covers AKS features that `azurerm` doesn't support yet
+- Pull requests show `terraform plan` / Bicep `what-if`; merges to `main` apply after approval in a GitHub environment
+- Every environment can be destroyed and recreated from code, so it runs only while being worked on
+
+**Alternatives considered:**
+
+- Terraform for everything — one tool, but no Bicep
+- Bicep for AKS as well — one tool per cloud, but Terraform would be used only once, and the comparison on the same cloud is lost
+- AWS CloudFormation / CDK — AWS's own IaC, the counterpart of Bicep; a third tool to learn
+- Pulumi — IaC written in TypeScript, the project's language; less widespread than Terraform
+- OpenTofu — the open-source (MPL-2.0) fork of Terraform under the Linux Foundation, a drop-in replacement. Terraform's Business Source License doesn't restrict managing your own infrastructure, and switching later is cheap
