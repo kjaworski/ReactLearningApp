@@ -426,7 +426,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 - AI budget forecasting (Phase 4)
 - Mobile app (Phase 4)
 - Custom dashboard widgets (Phase 4)
-- AWS deployment (post-MVP — develop locally first)
+- Cloud deployment — AWS first, then Azure, later Kubernetes/AKS (post-MVP — develop locally first; learning path in tech-stack.md)
 - i18n / translation support for category names and UI (post-MVP — English-only at launch, default category names stored in English)
 
 **Key architectural decisions:**
