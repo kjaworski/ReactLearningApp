@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then frontend. Start with monorepo scaffolding → Prisma schema → NestJS modules (identity → transaction → reporting) → Next.js frontend → polish. Each phase is independently verifiable. From Phase C on, a GitHub Actions workflow checks every push.
+Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then frontend. Start with monorepo scaffolding → Prisma schema → NestJS modules (identity → transaction → reporting) → Next.js frontend → polish. Each phase is independently verifiable. From Phase C on, a GitHub Actions workflow checks every push. Each phase also has a learning focus on architecture and security; AI comes with the Phase 3–4 features (Learning focus, below).
 
 ---
 
@@ -103,7 +103,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 **Steps:**
 
 - **CI-1** — First workflow, `.github/workflows/ci.yml`: on every push to `main` and every pull request, install dependencies, then run `pnpm format:check`, `pnpm lint`, `pnpm build`, `pnpm test` — _next_
-- **CI-2** — Keep the workflow safe: Dependabot version updates for GitHub Actions; actions locked to exact commits (`gh actions-lock`, or full-length SHAs); optionally a ruleset on `main` that requires the CI check (changes then go through pull requests)
+- **CI-2** — Keep the repository and the workflow safe: turn on GitHub's free security features for public repositories (Dependabot alerts and security updates, CodeQL code scanning with the default setup, secret scanning with push protection); Dependabot version updates for GitHub Actions; actions locked to exact commits (`gh actions-lock`, or full-length SHAs); optionally a ruleset on `main` that requires the CI check (changes then go through pull requests)
 - **CI-3** — With C3: the e2e smoke test against a PostgreSQL 18 service container, after `prisma migrate deploy`
 - **CI-4** — With the Docker step (post-MVP): build the API and web images
 - **CD** — With each cloud (post-MVP): deploy workflows that sign in with OIDC; infrastructure previews (`terraform plan`, Bicep `what-if`) on pull requests, applied on `main` after approval in a GitHub environment
@@ -132,6 +132,24 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 ---
 
+## Learning focus — architecture, security, AI (_alongside all phases_)
+
+> The app is the exercise. Each phase adds architecture and security topics on top of its features: the developer drafts first (ADRs, threat models, diagrams), then Copilot reviews. Baselines are in tech-stack.md: Architecture style, Security baseline, AI features.
+
+| Phase        | Architecture                                                                                                                                                                      | Security                                                                                                                                                                                          |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CI**       | Pipelines as code; least-privilege tokens                                                                                                                                         | Supply chain: what each CI-2 feature catches (vulnerable dependencies, leaked secrets, unsafe code patterns)                                                                                      |
+| **C**        | ADR-19: the architecture style (modular monolith, DDD modules, CQRS), so far only described in tech-stack.md; dependency injection and module boundaries; fail-fast configuration | Threat model of sign-up and sign-in (STRIDE); password hashing; JWT vs session cookies; CSRF and CORS; broken object-level authorization — a test proves that another household's ids are refused |
+| **D**        | Aggregates and invariants (splits add up to the total); commands vs queries; transaction boundaries                                                                               | Mass assignment (unknown fields are rejected); an authorization test for every endpoint                                                                                                           |
+| **E**        | Read models calculated on the fly vs precomputed (HS-14) — measure before optimizing                                                                                              | CSV injection; file downloads (`Content-Disposition`, content types)                                                                                                                              |
+| **F**        | Server vs client components; where state lives                                                                                                                                    | XSS (React escaping, no `dangerouslySetInnerHTML` with user data); Content Security Policy                                                                                                        |
+| **G**        | The performance targets (step 4)                                                                                                                                                  | OWASP ASVS 5.0 Level 1 review (step 5); dependency audit                                                                                                                                          |
+| **Post-MVP** | C4 diagrams; AWS and Azure Well-Architected reviews; an outbox table once events leave the process                                                                                | Cloud IAM least privilege, private networking, container image scanning, security logging                                                                                                         |
+
+**AI:** the AI features come in Phases 3–4 (tech-stack.md, AI features); each is built without AI first and then compared with an AI version. Until then, the AI topic is AI-assisted development: every generated change is read, understood, and checked against official documentation before it's committed.
+
+---
+
 ## Phase C: Backend — Identity & Access Module — _depends on Phase B_
 
 > Build UC-6 (Register & Login), UC-16 (Invite Member), household creation, default categories/account seeding. This is the auth foundation everything else depends on.
@@ -142,7 +160,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 - **C1** — Configuration: `@nestjs/config` loads `apps/api/.env`; the app refuses to start when a required variable is missing — _after CI-1_
 - **C2** — Database access: `PrismaModule` + `PrismaService`; the first endpoint, `GET /health`, checks the database connection
-- **C3** — Logging and API docs: Pino logging, Swagger UI at `/api/docs`, CORS for `http://localhost:3000`; the scaffold e2e test (still expects `GET /` → "Hello World!") becomes a `GET /health` smoke test
+- **C3** — Logging, API docs, and HTTP hardening: Pino logging, Swagger UI at `/api/docs`, CORS for `http://localhost:3000`, security headers (Helmet); the scaffold e2e test (still expects `GET /` → "Hello World!") becomes a `GET /health` smoke test
 - **C4** — Register _(learning version)_: `POST /auth/register` — DTO validation, Argon2id password hash, duplicate email → 409
 - **C5** — Log in _(learning version)_: `POST /auth/login` returns a short-lived JWT
 - **C6** — Protected routes _(learning version)_: JWT strategy + guard, `@CurrentUser()`, `GET /users/me`
@@ -158,7 +176,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 1. **Foundation** (C1–C3):
    - `ConfigModule` (global) — loads `apps/api/.env`, validates required variables at startup. `JWT_REFRESH_EXPIRES_IN` isn't used by this plan (no refresh tokens: C5 issues a short-lived JWT, C7 switches to sessions) — remove it from `.env.example` and the README
    - `PrismaModule` (global) — wraps the Prisma client, handles the connection lifecycle; `GET /health`
-   - Pino logger, Swagger UI (`@nestjs/swagger`, API groups by module), CORS
+   - Pino logger, Swagger UI (`@nestjs/swagger`, API groups by module), CORS, security headers (Helmet)
 
 2. **Learning version of auth** (C4–C6) — built by hand to see how login works:
    - `POST /auth/register` — email + password; validated DTO (global `ValidationPipe`); password hashed with Argon2id; an exception filter maps a duplicate email (Prisma unique constraint) to 409 Conflict
@@ -411,7 +429,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
    - Virtual scroll with 500+ transactions renders smoothly
    - Dashboard loads under 1 second with 1000 transactions
 
-5. **Security review**:
+5. **Security review** — OWASP ASVS 5.0 Level 1 as the checklist:
    - All endpoints require authentication
    - HouseholdId scoping prevents cross-household data access
    - SQL injection prevented by Prisma parameterized queries

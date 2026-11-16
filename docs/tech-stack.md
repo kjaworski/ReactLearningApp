@@ -1,7 +1,7 @@
 # Tech Stack – Personal & Household Finance Manager
 
 > **Decision date:** May 2026
-> **Context:** Solo developer (.NET backend senior, frontend junior), building a DDD-based household finance app for learning + portfolio. Goal: full-stack job readiness.
+> **Context:** Solo developer (.NET backend senior, frontend junior), building a DDD-based household finance app for learning + portfolio. Goal: full-stack job readiness, including cloud, software architecture, security, and AI.
 
 ---
 
@@ -30,6 +30,14 @@
 │  Tailwind CSS │         │  Guards          │
 └───────────────┘         └──────────────────┘
 ```
+
+**Architecture style:**
+
+- **Modular monolith** — one API, deployed as a unit; each bounded context is a NestJS module (Module Structure below), all sharing one PostgreSQL database
+- **Domain-Driven Design** — aggregates enforce the business rules, e.g. splits must add up to the transaction total (ddd-analysis.md)
+- **CQRS** — separate command and query handlers in each module (`@nestjs/cqrs`); MVP queries calculate totals on the fly (HS-14)
+- **Domain events** — modules react to each other's events on an in-memory event bus. That works for one API instance; several instances need an external broker, for example fed from an outbox table so no event is lost
+- **Ports and adapters** — cloud-specific code (file storage, e-mail) sits behind small interfaces with one adapter per cloud (HS-26)
 
 ---
 
@@ -109,6 +117,21 @@ GitHub Actions runs the checks a developer runs before pushing — `pnpm format:
 | Templates                                         | Reusable workflows, composite actions                                          |
 | `System.AccessToken`                              | `GITHUB_TOKEN`, limited with `permissions`                                     |
 
+### Security baseline
+
+> What every phase builds on. OWASP ASVS 5.0 is the checklist for the Phase G review; the security topics of each phase are in implementation-plan.md (Learning focus).
+
+| Area                 | Choice                                                                                                                                                                 | Why                                                                                                                                       |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Passwords**        | Argon2id in the learning version, then Better Auth                                                                                                                     | OWASP's first choice for password hashing (architecture.md ADR-16)                                                                        |
+| **Sessions**         | httpOnly, Secure, SameSite cookies                                                                                                                                     | JavaScript can't read the session; SameSite cookies and Better Auth's trusted origins block CSRF                                          |
+| **Authorization**    | Every household-scoped request checks membership (`HouseholdGuard`, C8)                                                                                                | Broken object-level authorization is the #1 risk in the OWASP API Security Top 10: a valid session must not open another household's data |
+| **Input and output** | DTO validation that rejects unknown fields; Prisma's parameterized queries; React's escaping; CSV-injection escaping in exports                                        | Injection, mass assignment, XSS                                                                                                           |
+| **HTTP**             | Security headers (Helmet), CORS limited to the web app's origin, rate limiting on sign-in                                                                              | A smaller attack surface; password guessing is slowed down                                                                                |
+| **Secrets**          | `.env` files locally (gitignored); Secrets Manager / Key Vault in the cloud; OIDC in CI                                                                                | No secrets in Git or in CI settings                                                                                                       |
+| **Supply chain**     | Lockfile with frozen installs; dependency build scripts run only for packages listed in `allowBuilds`; Dependabot alerts; CodeQL; secret scanning with push protection | Vulnerable or malicious dependencies and leaked secrets are caught early; the GitHub features are free for public repositories            |
+| **Personal data**    | Collect only what the features need; TLS everywhere; encryption at rest in the managed database and storage                                                            | Financial data is personal data (GDPR)                                                                                                    |
+
 ### Deployment — AWS, Azure, then AKS (post-MVP)
 
 > Both clouds are deployment targets and learning goals: the same app is deployed to AWS first, then to Azure, to compare the platforms, and finally to Kubernetes on AKS. The goal is to understand both ecosystems, not to run one production system across two clouds. The app itself stays cloud-neutral — containers, configuration from environment variables, PostgreSQL — and provider-specific code is limited to small adapters for file storage and e-mail. Every environment is created from code, so it can be destroyed when it isn't needed and recreated later.
@@ -179,6 +202,22 @@ GitHub Actions runs the checks a developer runs before pushing — `pnpm format:
 - **AKS Automatic** — Microsoft's production default: node autoprovisioning, Gateway API ingress, workload identity, monitoring, and safeguards are preconfigured; Standard tier (paid control plane with an SLA). Worth trying afterwards to see what it automates
 - **Cost** — one small node pool; stop the cluster (`az aks stop`) or `terraform destroy` it when it isn't used
 - **EKS**, AWS's managed Kubernetes, is not planned — the Kubernetes concepts are the same, and one managed Kubernetes service is enough to learn them
+
+### AI features (Phases 3–4 — services not decided yet)
+
+> Requirements 11.6 and 17.2 bring AI into the app. Each feature first gets the simplest version that works; the AI version is then built next to it and compared on accuracy, cost, latency, and privacy. Services are chosen when the feature is built.
+
+| Feature                                                | Simple version first                              | AI version                                                                                        | Azure                                                       | AWS                         |
+| ------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------- |
+| **Receipt → draft transaction** (17.2, HS-28 to HS-30) | Manual entry, with the photo attached             | Prebuilt receipt extraction, or a vision-capable LLM that returns structured output (JSON schema) | Document Intelligence (`prebuilt-receipt`) in Foundry Tools | Textract (`AnalyzeExpense`) |
+| **Category suggestions** (HS-21, HS-31)                | The category used last time for the same merchant | An LLM picks one of the household's categories                                                    | Microsoft Foundry models                                    | Amazon Bedrock              |
+| **Budget forecasting** (11.6, HS-33)                   | Average of the last few months per category       | A statistical or ML forecast in code; an LLM explains it in plain language                        | Microsoft Foundry models                                    | Amazon Bedrock              |
+
+- **Human in the loop** — AI only proposes (a draft transaction, a category, a budget); the user confirms
+- **Untrusted input** — receipt text and merchant names can contain prompt injection: model output is validated against a schema and never triggers an action on its own (OWASP Top 10 for LLM Applications)
+- **Data minimization** — send only the fields a feature needs, never account numbers; check the service's data retention and data residency terms
+- **Evaluation** — a small labelled test set (receipts, transactions) measures accuracy before and after every prompt or model change
+- **Cost** — pay per request: limits per household, caching, and the cheapest model that passes the evaluation
 
 ---
 
@@ -291,6 +330,7 @@ recharts                       ← Charts
 better-auth, @thallesp/nestjs-better-auth ← Auth (sessions, Google sign-in)
 @nestjs/passport, @nestjs/jwt, passport-jwt, @node-rs/argon2 ← Hand-built learning version of auth (removed after the switch)
 @nestjs/swagger                ← API docs
+helmet                         ← Security headers
 @nestjs/config                 ← Environment config
 @nestjs/schedule               ← Cron jobs
 @prisma/client, prisma         ← ORM (Prisma 7 + @prisma/adapter-pg driver adapter)

@@ -2,6 +2,8 @@
 
 A full-stack web application for tracking personal and household finances, built with a modern TypeScript monorepo architecture.
 
+It is also a learning project: full-stack development, cloud (AWS, Azure, Kubernetes), software architecture, security, and AI — learned by building this app ([implementation plan](docs/implementation-plan.md)).
+
 ## Tech Stack
 
 | Layer    | Technology                                                   |

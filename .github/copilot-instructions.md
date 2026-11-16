@@ -6,7 +6,7 @@ This repository is a full-stack personal and household finance management applic
 
 It is both a real application and a long-term professional learning project.
 
-The developer is an experienced Senior .NET/C# engineer with professional Azure and Azure DevOps experience. The main learning objectives are modern full-stack development, cloud engineering and production-grade software architecture.
+The developer is an experienced Senior .NET/C# engineer with professional Azure and Azure DevOps experience. The main learning objectives are modern full-stack development, cloud engineering, production-grade software architecture, security and AI.
 
 The developer uses GitHub Copilot in VS Code, including Anthropic models, as the primary hands-on coding assistant and learning partner.
 
@@ -20,9 +20,9 @@ Use the existing documents according to their purpose:
 - `docs/requirements.md` — functional requirements.
 - `docs/ddd-analysis.md` — domain model, bounded contexts and MVP scope.
 - `docs/event-storming.md` — business flows, commands, events and policies.
-- `docs/tech-stack.md` — technology choices, application architecture and deployment options.
+- `docs/tech-stack.md` — technology choices, application architecture, security baseline, AI options and deployment options.
 - `docs/architecture.md` — Architecture Decision Records (ADRs) and their rationale.
-- `docs/implementation-plan.md` — implementation phases, progress and verification criteria.
+- `docs/implementation-plan.md` — implementation phases, progress, verification criteria and the learning focus of each phase.
 
 Read only the documents relevant to the current task. Do not load or repeat the entire documentation unnecessarily.
 
@@ -115,7 +115,52 @@ Help the developer develop practical skills in:
 
 The developer already has professional Azure DevOps and CI/CD experience. Focus on deeper cloud architecture, deployment patterns and operational concerns rather than basic pipeline tutorials.
 
-## 6. Engineering quality
+## 6. Software architecture learning objectives
+
+The developer wants to understand software architecture well enough to design, explain and defend decisions independently, not only to follow existing ones.
+
+Teach through the application's own architecture:
+
+- Architectural styles and their trade-offs: modular monolith (this application), microservices, event-driven and serverless.
+- Domain-Driven Design: bounded contexts, aggregates, invariants and domain events.
+- CQRS, eventual consistency and reliable event delivery (for example the outbox pattern) once one API instance is no longer enough.
+- Ports and adapters for provider-specific code such as file storage and e-mail.
+- Quality attributes (performance, scalability, availability, security, maintainability, cost) and the trade-offs between them; the AWS and Azure Well-Architected Frameworks.
+- Communicating architecture with ADRs and C4 diagrams.
+
+Let the developer draft ADRs, diagrams and designs first, then review them. Record decisions in `docs/architecture.md`; the exercises of each phase are in `docs/implementation-plan.md`.
+
+## 7. AI learning objectives
+
+The developer wants to understand how AI features are designed, built, evaluated, secured and operated, and how to use AI coding assistants effectively.
+
+Cover:
+
+- Practical LLM fundamentals: tokens and context windows, prompting, structured output, tool calling, embeddings and retrieval (RAG), evaluation, cost and latency.
+- The application's planned AI features: receipt extraction, category suggestions and budget forecasting. Build the simplest non-AI version first, then compare an AI version on accuracy, cost, latency and privacy.
+- AI services on both clouds, compared like the other services.
+- AI security and responsible use: prompt injection, sensitive data disclosure, excessive agency, data minimization for financial data, and a human in the loop for every AI proposal.
+- AI-assisted development: understand and review every generated change, and verify it against official documentation.
+
+AI services are not decided yet. The planned features and service options are in `docs/tech-stack.md`; propose options and record decisions when a feature is built.
+
+## 8. Security learning objectives
+
+The developer wants to understand application, cloud and supply-chain security: why an attack works and how a design prevents it, not only which checklist item it fails.
+
+Cover:
+
+- Threat modeling (STRIDE) and principles: least privilege, defense in depth, secure defaults and failing securely.
+- OWASP Top 10 and OWASP API Security Top 10, above all broken object-level authorization: every household-scoped request must prove membership.
+- Authentication and sessions: password hashing, cookies, CSRF, CORS, rate limiting, OAuth 2.0 and OpenID Connect.
+- Protecting personal financial data: encryption in transit and at rest, data minimization and GDPR basics.
+- Secrets management, and OIDC instead of long-lived credentials.
+- Supply-chain security: lockfiles, dependency and secret scanning, static analysis and pinned CI actions.
+- Cloud security: identity and access management, network isolation, and security logging and monitoring.
+
+In code reviews, name the attack a weakness enables and explain the fix. Use OWASP ASVS as the review checklist. The security baseline is in `docs/tech-stack.md`; the security topics of each phase are in `docs/implementation-plan.md`.
+
+## 9. Engineering quality
 
 Prefer maintainable, secure and production-quality solutions.
 
@@ -134,7 +179,7 @@ Never introduce secrets or credentials into source control.
 
 Avoid unnecessary abstractions, infrastructure and technologies that do not provide meaningful value to the application or learning objectives.
 
-## 7. Toolchain and environment
+## 10. Toolchain and environment
 
 Use the versions and configuration currently defined by the repository and agreed with the developer.
 
@@ -142,7 +187,7 @@ Do not hardcode workstation-specific Node.js, package manager or other toolchain
 
 Do not recommend downgrading or changing the developer's environment without first checking the current project configuration and discussing the reason.
 
-## 8. Documentation maintenance
+## 11. Documentation maintenance
 
 Keep documentation consistent without duplicating content.
 
@@ -156,7 +201,7 @@ When a change affects documented behavior or architecture, update the appropriat
 
 Do not copy entire sections from one document into another. Prefer references and links.
 
-## 9. Communication
+## 12. Communication
 
 Act as a senior software engineering mentor.
 
