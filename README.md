@@ -7,16 +7,16 @@ A full-stack web application for tracking personal and household finances, built
 | Layer    | Technology                                                   |
 | -------- | ------------------------------------------------------------ |
 | Frontend | Next.js 16 (App Router, Turbopack), React 19, Tailwind CSS 4 |
-| Backend  | NestJS 11, Prisma 7                                          |
-| Database | PostgreSQL 16                                                |
-| Shared   | TypeScript 5.7, shared types package                         |
-| Monorepo | pnpm 11, Turborepo 2.9                                       |
-| Quality  | ESLint 9/10, Prettier 3.8, Husky 9 + lint-staged 17          |
+| Backend  | NestJS 12 (native ESM), Prisma 7, Vitest 5                   |
+| Database | PostgreSQL 18                                                |
+| Shared   | TypeScript 6.0, shared types package                         |
+| Monorepo | pnpm 12, Turborepo 2.11                                      |
+| Quality  | ESLint 10, Prettier 3.10, Husky 9 + lint-staged 17           |
 
 ## Prerequisites
 
-- **Node.js 24** — pinned via [Volta](https://volta.sh/) (`volta install node@24`)
-- **pnpm 11** — `corepack enable && corepack prepare pnpm@11.1.3 --activate`
+- **Node.js 26** (LTS) — pinned to 26.13.1 with [Volta](https://volta.sh/), which switches to it automatically inside the repo
+- **pnpm 12** — pinned to 12.21.0 via `packageManager`; a globally installed pnpm switches to it automatically (on Windows, a global pnpm 11 must be ≥ 11.28.4 — see ADR-4 in [docs/architecture.md](docs/architecture.md))
 - **Docker** — for PostgreSQL
 
 ## Getting Started
@@ -27,9 +27,10 @@ git clone <repo-url>
 cd ReactLearningApp
 pnpm install
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env with your values (DATABASE_URL is pre-configured for Docker)
+# 2. Configure environment (one .env per app)
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+# Set JWT_SECRET in apps/api/.env (DATABASE_URL already matches docker-compose.yml)
 
 # 3. Start PostgreSQL
 docker compose up -d
@@ -54,6 +55,7 @@ pnpm dev
 ReactLearningApp/
 ├── apps/
 │   ├── api/                  # NestJS backend (port 3001)
+│   │   ├── .env.example      # Settings template (copy to .env)
 │   │   ├── prisma/           # Prisma schema & migrations
 │   │   ├── src/
 │   │   │   ├── generated/    # Prisma client (gitignored)
@@ -63,26 +65,27 @@ ReactLearningApp/
 │   │   │   │   └── reporting/
 │   │   │   ├── app.module.ts
 │   │   │   └── main.ts
-│   │   └── prisma.config.ts  # Prisma ESM config
+│   │   └── prisma.config.ts  # Prisma CLI config (schema, seed, datasource)
 │   │
 │   └── web/                  # Next.js frontend (port 3000)
+│       ├── .env.example      # Settings template (copy to .env)
 │       └── src/app/          # App Router pages
 │
 ├── packages/
 │   └── shared/               # Shared types & enums
-│       └── src/index.ts      # TransactionType enum, DTOs
+│       └── src/index.ts      # Shared types (TransactionType enum)
 │
 ├── docs/                     # Design & planning documents
 │   ├── requirements.md
 │   ├── ddd-analysis.md
 │   ├── event-storming.md
 │   ├── tech-stack.md
+│   ├── architecture.md       # Architecture decision records (ADRs)
 │   └── implementation-plan.md
 │
-├── docker-compose.yml        # PostgreSQL 16 for local dev
+├── docker-compose.yml        # PostgreSQL 18 for local dev
 ├── turbo.json                # Turborepo task pipelines
-├── pnpm-workspace.yaml       # Workspace package definitions
-└── .env.example              # Environment variable template
+└── pnpm-workspace.yaml       # Workspace package definitions
 ```
 
 ## Scripts
@@ -108,13 +111,12 @@ Shared types are consumed via `workspace:*` protocol — import from `@finance/s
 
 ## Environment Variables
 
-See [.env.example](.env.example) for all required variables. Key groups:
+Each app has its own `.env` (gitignored) next to a committed `.env.example` template — there is no root `.env`:
 
-- **Database** — `DATABASE_URL` (PostgreSQL connection string)
-- **JWT** — `JWT_SECRET`, `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`
-- **Google OAuth** — `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-- **NextAuth** — `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
-- **API** — `NEXT_PUBLIC_API_URL` (frontend → backend URL)
+- **`apps/api/.env`** — `DATABASE_URL` (PostgreSQL connection string), `JWT_SECRET`, `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`
+- **`apps/web/.env`** — `NEXT_PUBLIC_API_URL` (frontend → backend URL)
+
+Sign-in provider settings (e.g. Google) are added together with the sign-in feature.
 
 ## Docker
 
@@ -124,4 +126,4 @@ docker compose down     # Stop PostgreSQL
 docker compose down -v  # Stop and delete data volume
 ```
 
-PostgreSQL runs on port 5432 with credentials from `.env.example`.
+PostgreSQL 18 runs on port 5432; the credentials in `docker-compose.yml` match `DATABASE_URL` in `apps/api/.env.example`.

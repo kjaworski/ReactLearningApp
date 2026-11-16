@@ -1,12 +1,12 @@
 # @finance/api — NestJS Backend
 
-The REST API backend for the Personal & Household Finance Manager, built with NestJS 11 and Prisma 7.
+The REST API backend for the Personal & Household Finance Manager, built with NestJS 12 (native ESM) and Prisma 7.
 
 ## Prerequisites
 
-- Node.js 24 (via Volta)
-- pnpm 11
-- Docker (for PostgreSQL)
+- Node.js 26 (pinned via Volta in the root `package.json`)
+- pnpm 12 (pinned via `packageManager` in the root `package.json`)
+- Docker (for PostgreSQL 18)
 
 ## Setup
 
@@ -14,6 +14,7 @@ The REST API backend for the Personal & Household Finance Manager, built with Ne
 # From repository root
 docker compose up -d          # Start PostgreSQL
 cd apps/api
+cp .env.example .env          # Then set JWT_SECRET
 pnpm install                  # Install dependencies (usually done from root)
 pnpm exec prisma generate     # Generate Prisma client
 pnpm exec prisma migrate dev  # Apply migrations
@@ -25,8 +26,8 @@ pnpm exec prisma db seed      # Seed dev data
 ```bash
 pnpm dev          # Start in watch mode (port 3001)
 pnpm build        # Production build
-pnpm test         # Run unit tests
-pnpm test:e2e     # Run E2E tests
+pnpm test         # Run unit tests (Vitest)
+pnpm test:e2e     # Run E2E tests (Vitest + Supertest)
 ```
 
 ## Database
@@ -35,6 +36,7 @@ pnpm test:e2e     # Run E2E tests
 | -------------------------------------------- | --------------------------------------- |
 | `pnpm exec prisma migrate dev --name <name>` | Create a new migration                  |
 | `pnpm exec prisma migrate dev`               | Apply pending migrations                |
+| `pnpm exec prisma migrate deploy`            | Apply migrations only (fresh DB, CI)    |
 | `pnpm exec prisma generate`                  | Regenerate Prisma client                |
 | `pnpm exec prisma db seed`                   | Run seed script                         |
 | `pnpm exec prisma studio`                    | Open database browser (GUI)             |
@@ -44,18 +46,21 @@ pnpm test:e2e     # Run E2E tests
 
 ```
 apps/api/
+├── .env.example              # Settings template (DATABASE_URL, JWT_*) — copy to .env
 ├── prisma/
 │   ├── schema.prisma         # Database schema (8 models, 3 enums)
-│   ├── seed.ts               # Dev seed data (user, household, 23 categories)
+│   ├── seed.ts               # Dev seed data (user, household, account, 23 categories)
 │   └── migrations/           # SQL migration files
 ├── prisma.config.ts          # Prisma CLI config (schema, seed, datasource)
+├── vitest.config.ts          # Unit tests (*.spec.ts)
+├── vitest.config.e2e.ts      # E2E tests (*.e2e-spec.ts)
 ├── src/
 │   ├── generated/prisma/     # Generated Prisma client (gitignored)
 │   ├── modules/
 │   │   ├── identity/         # User, Household, Invitation, Auth
 │   │   ├── transaction/      # Transaction, Category, Account
 │   │   └── reporting/        # Dashboard, Reports, Export
-│   ├── common/               # Guards, decorators, filters, pipes
+│   ├── common/               # Guards, decorators, filters, interfaces
 │   ├── prisma/               # PrismaModule (global)
 │   ├── app.module.ts
 │   └── main.ts
@@ -64,8 +69,8 @@ apps/api/
 
 ## Tech Stack
 
-- **NestJS 11** — modular backend framework (DI, guards, CQRS)
+- **NestJS 12** — modular backend framework (DI, guards, CQRS)
 - **Prisma 7** — type-safe ORM with driver adapter (`@prisma/adapter-pg`)
-- **PostgreSQL 16** — relational database (via Docker)
-- **TypeScript 5.7** — strict mode, `nodenext` module resolution
-- **Jest** — unit and integration testing
+- **PostgreSQL 18** — relational database (via Docker)
+- **TypeScript 6.0** — strict mode, native ESM (`"type": "module"` + `nodenext`): relative imports end in `.js`, e.g. `import { AppModule } from './app.module.js'`
+- **Vitest 5** — unit and E2E testing (Jest-compatible API)

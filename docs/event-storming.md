@@ -127,7 +127,7 @@
 
 ```
 🟨 Household Member
-  → 🟦 CreateCategory (name, icon, color)
+  → 🟦 CreateCategory (name, type, icon, color)
     → 🟩 Category
       → 🟧 CategoryCreated
 
@@ -182,15 +182,27 @@
       → 🟧 AccountRenamed
 
 🟨 Household Member
+  → 🟦 SetDefaultAccount (id)
+    → 🟩 Account
+      → ❓ Rule: Account is active?
+      → 🟧 DefaultAccountChanged
+
+🟨 Household Member
   → 🟦 DeactivateAccount (id)
     → 🟩 Account
-      → ❓ Rule: Account has no pending transactions?
-      → 🟧 AccountDeactivated
+      → ❓ Rule: Is it the default account, or the household's last active account?
+        → YES → 🔴 Reject — "Make another account the default first" / "Keep at least one active account"
+        → NO  → 🟧 AccountDeactivated
 ```
 
 **📖 Read Models produced:**
 
-- Account List (name, currency, balance)
+- Account List (name, currency, balance, default, active)
+- Account picker for new transactions (active accounts only; deactivated accounts stay in history, filters, and reports)
+
+**🔴 Hot Spots (resolved):**
+
+- ✅ HS-35: Deactivation rules — **Soft deactivation.** Rejected for the default account and for the household's last active account.
 
 ---
 
@@ -275,9 +287,9 @@
 🟨 Household Member
   → 📖 GetDashboard (month = current month by default, selectable)
     → 📖 Pie Chart: expenses by category (selected month)
-    → 📖 Balance: total receipts − total expenses (selected month)
+    → 📖 Balance: total income − total expenses (selected month)
     → 📖 Total Expenses (selected month)
-    → 📖 Total Receipts (selected month)
+    → 📖 Total Income (selected month)
     → 📖 Account Summary: balance per account
 
 Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
@@ -306,7 +318,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 
 **🔴 Hot Spots (resolved):**
 
-- ✅ HS-15: Export — **Yes, both PDF and CSV export** available in MVP.
+- ✅ HS-15: Export — **Yes, both PDF and CSV export** available in MVP, generated on the server and downloaded as files.
 - Savings visualization — the number for MVP; savings graph (chart) in Phase 2 (Flow 15).
 
 ---
@@ -317,7 +329,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 
 ```
 🟨 Household Member
-  → 🟦 SetBudget (categoryId, month, limitAmount, projectedReceipts)
+  → 🟦 SetBudget (categoryId, month, limitAmount, projectedIncome)
     → 🟩 Budget
       → 🟧 BudgetSet
 ```
@@ -325,7 +337,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 **📖 Read Models produced:**
 
 - Budget Overview: per-category limit vs. actual spending
-- Forecast: projected expenses, receipts, savings
+- Forecast: projected expenses, income, savings
 
 ---
 
@@ -403,7 +415,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
     → type = "per-user"
       → 📖 User Statement: spending per household member
     → type = "savings"
-      → 📖 Savings Report: receipts − expenses, with "saved" indicator
+      → 📖 Savings Report: income − expenses, with "saved" indicator
 ```
 
 ---
@@ -504,7 +516,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 **🔴 Hot Spots:**
 
 - File size limit? Accepted formats (JPEG, PNG, PDF)?
-- Storage: cloud (S3/Azure Blob) or local?
+- ✅ Storage — **AWS S3** with presigned URLs (HS-26)
 
 ---
 
@@ -773,7 +785,9 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 │                                  ⬜ Exchange Rate Service ──► 🟧 ExchangeRateFetched
 │
 ├─► 🟦 RenameAccount ──► 🟩 Account ──► 🟧 AccountRenamed
+├─► 🟦 SetDefaultAccount ──► 🟩 Account ──► 🟧 DefaultAccountChanged
 └─► 🟦 DeactivateAccount ──► 🟩 Account ──► 🟧 AccountDeactivated
+        (❓ Rule: not the default account, not the last active one)
 
 📖 Read Models:
   - Transaction List (filtered by date, user, category, account, amount, type)
@@ -788,7 +802,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 
 🟨 Household Member
 └─► 🟦 SetBudget ──► 🟩 Budget ──► 🟧 BudgetSet
-         (categoryId, month, limit, projectedReceipts)
+         (categoryId, month, limit, projectedIncome)
 
 🟧 TransactionRecorded / TransactionCategorized / TransactionSplit / TransactionUnsplit
   → 🟪 CheckBudget (categoryId, month)
@@ -799,7 +813,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 
 📖 Read Models:
   - Budget Overview (per-category limit vs. actual)
-  - Forecast (projected expenses, receipts, savings)
+  - Forecast (projected expenses, income, savings)
 
 ══════════════════════════════════════════════════════════════════════
  BANK INTEGRATION
@@ -891,8 +905,8 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 
 📖 Dashboard (composite read model, updated by TransactionRecorded/Categorized/Split):
   - Pie chart: expenses by category
-  - Monthly balance (receipts − expenses)
-  - Total expenses / Total receipts
+  - Monthly balance (income − expenses)
+  - Total expenses / Total income
   - Budget status
   - Account summary
 
@@ -945,7 +959,7 @@ cross-cutting UI and platform concerns. Included here for traceability.
 ## All Hot Spots (Consolidated)
 
 > These are open questions to resolve before or during implementation.
-> MVP hot spots (HS-1 through HS-15 and HS-34) have been **resolved** — see the Resolution column.
+> MVP hot spots (HS-1 through HS-15, HS-34, and HS-35) have been **resolved**, and so has HS-26 — see the Resolution column.
 
 | #     | Hot Spot                                                                   | Context                 | Priority | Resolution                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ----- | -------------------------------------------------------------------------- | ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -963,7 +977,7 @@ cross-cutting UI and platform concerns. Included here for traceability.
 | HS-12 | Dashboard: fixed to current month or selectable?                           | Reporting               | MVP      | ✅ **Defaults to current month**, user can pick any month.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | HS-13 | Dashboard refresh frequency?                                               | Reporting               | MVP      | ✅ **Real-time refresh** after each save (transaction add/edit/split/categorize).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | HS-14 | Precompute aggregates or calculate on the fly?                             | Reporting               | MVP      | ✅ **Calculate on the fly for MVP.** Optimize with precomputed aggregates later if performance requires it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| HS-15 | Export reports to PDF/CSV?                                                 | Reporting               | MVP      | ✅ **Yes, both PDF and CSV export** available in MVP.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| HS-15 | Export reports to PDF/CSV?                                                 | Reporting               | MVP      | ✅ **Yes, both PDF and CSV export** available in MVP, generated on the server and downloaded as files.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | HS-16 | Category hierarchy (subcategories)?                                        | Transaction Management  | Phase 2+ |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | HS-17 | Budget alert threshold: 100% or earlier warning?                           | Budgeting               | Phase 2  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | HS-18 | Split transactions: check budget per split category?                       | Budgeting               | Phase 2  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -974,7 +988,7 @@ cross-cutting UI and platform concerns. Included here for traceability.
 | HS-23 | Subscription matching tolerance (amount, date)                             | Subscription Management | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | HS-24 | Variable-amount subscriptions?                                             | Subscription Management | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | HS-25 | Receipt file size limit and formats                                        | Transaction Management  | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| HS-26 | Receipt storage: cloud provider?                                           | Infrastructure          | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| HS-26 | Receipt storage: cloud provider?                                           | Infrastructure          | Phase 3  | ✅ **AWS S3**, private bucket. The browser uploads and downloads files directly with short-lived presigned URLs, so files don't pass through the API. Only the standard S3 API is used, so any S3-compatible storage works locally or on another cloud.                                                                                                                                                                                                                                                                                                                                                                                                 |
 | HS-27 | Promotion condition types and evaluation engine                            | Promotion Tracking      | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | HS-28 | Which OCR/AI service for receipt scanning?                                 | Transaction Management  | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | HS-29 | Multi-item receipts: one transaction or many?                              | Transaction Management  | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -983,4 +997,5 @@ cross-cutting UI and platform concerns. Included here for traceability.
 | HS-32 | Retirement: inflation & return rate assumptions                            | Wealth Management       | Phase 4  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | HS-33 | AI forecasting: simple average vs. ML model?                               | Budgeting               | Phase 4  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | HS-34 | Delete category with existing transactions — reject or force reassignment? | Transaction Management  | MVP      | ✅ **Reject deletion.** User must reassign all transactions to another category first. System enforces "no orphaned transactions" invariant.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| HS-35 | What if a promotion spans multiple accounts?                               | Promotion Tracking      | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| HS-35 | Deactivate an account — which rules apply?                                 | Transaction Management  | MVP      | ✅ **Soft deactivation.** The account is no longer offered for new transactions, but its transactions stay in lists, filters, and reports. **Rejected** for the default account (make another account the default first) and for the household's last active account.                                                                                                                                                                                                                                                                                                                                                                                   |
+| HS-36 | What if a promotion spans multiple accounts?                               | Promotion Tracking      | Phase 3  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |

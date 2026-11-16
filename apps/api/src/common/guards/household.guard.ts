@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
+import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface.js';
 
 @Injectable()
 export class HouseholdGuard implements CanActivate {

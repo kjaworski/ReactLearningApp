@@ -13,4 +13,9 @@ export default [
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
+  {
+    languageOptions: {
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
+    },
+  },
 ];

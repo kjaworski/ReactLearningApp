@@ -12,49 +12,52 @@
 
 ### MVP (Phase 1) — Core Finance Tracking
 
-| #    | Feature                                                                   | Why it's in MVP                                                                  |
-| ---- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 1    | Manual transaction entry (date, amount, category, user, comment, account) | The fundamental action — without it nothing works                                |
-| 6    | Custom expense categories                                                 | Users need their own taxonomy from day one                                       |
-| 17.a | Manage accounts (create, rename, deactivate; default account on setup)    | Every transaction needs an account — must exist before first entry               |
-| 3    | Split transaction across categories                                       | Common real-world scenario (supermarket receipt = groceries + cleaning supplies) |
-| 4    | Filter transactions (by user, date, category, account, amount)            | Useless data without the ability to find things                                  |
-| 5    | Sum of filtered transactions                                              | Immediate insight                                                                |
-| 7    | User registration & login (password + Google)                             | Security & multi-user support                                                    |
-| 7.a  | Invite household members (7-day expiry, single-use, revocable)            | Shared household requires inviting a partner/family from day one                 |
-| 8    | Basic reports: monthly statement, category summary                        | Minimum actionable insight                                                       |
-| 16   | Simple dashboard: pie chart of expenses, balance, total expenses/receipts | The "home screen" that gives a snapshot                                          |
-| 13   | Dark/light mode                                                           | Low effort, high perceived quality                                               |
-| 14   | Modern UI, mobile-first, responsive (web only)                            | One platform to start with                                                       |
+> The `#` column refers to [requirements.md](requirements.md) — e.g. 8.1 is requirement 8, item 1.
+
+| #               | Feature                                                                                  | Why it's in MVP                                                                  |
+| --------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1               | Manual transaction entry (date, amount, category, user, comment, account)                | The fundamental action — without it nothing works                                |
+| 6               | Custom expense categories                                                                | Users need their own taxonomy from day one                                       |
+| 22              | Manage accounts (create, rename, choose default, deactivate)                             | Every transaction needs an account — must exist before first entry               |
+| 3               | Split transaction across categories                                                      | Common real-world scenario (supermarket receipt = groceries + cleaning supplies) |
+| 4               | Filter transactions (by user, date, category, account, amount)                           | Useless data without the ability to find things                                  |
+| 5               | Sum of filtered transactions                                                             | Immediate insight                                                                |
+| 7               | User registration & login (password + Google)                                            | Security & multi-user support                                                    |
+| 21              | Invite household members (7-day expiry, single-use, revocable)                           | Shared household requires inviting a partner/family from day one                 |
+| 8.1, 8.3        | Basic reports: monthly statement, category summary                                       | Minimum actionable insight                                                       |
+| 16.1-16.4, 16.6 | Simple dashboard: pie chart of expenses, balance, total income/expenses, account summary | The "home screen" that gives a snapshot                                          |
+| 13              | Dark/light mode                                                                          | Low effort, high perceived quality                                               |
+| 12, 14          | Modern UI, mobile-first, responsive (web only)                                           | One platform to start with                                                       |
 
 ### Phase 2 — Budgeting & Accounts
 
-| #   | Feature                                                                |
-| --- | ---------------------------------------------------------------------- |
-| 11  | Budget per category, alerts, color coding, projected receipts/expenses |
-| 10  | Multi-currency accounts with exchange rates                            |
-| 15  | Asset/savings graph over time                                          |
-| 8+  | Extended reports: yearly, period comparison, per-user, savings info    |
+| #            | Feature                                                              |
+| ------------ | -------------------------------------------------------------------- |
+| 11.1-11.5    | Budget per category, alerts, color coding, projected income/expenses |
+| 16.5         | Budget status on the dashboard                                       |
+| 10           | Multi-currency accounts with exchange rates                          |
+| 15           | Asset/savings graph over time                                        |
+| 8.2, 8.4-8.6 | Extended reports: yearly, period comparison, per-user, savings info  |
 
 ### Phase 3 — Automation & Integrations
 
-| #   | Feature                                        |
-| --- | ---------------------------------------------- |
-| 2   | Bank API import (automatic + on-demand)        |
-| 9   | Subscription tracking & reminders              |
-| 17  | Receipt photo/scan attachment                  |
-| 17b | Import transaction from uploaded receipt (OCR) |
-| 18  | Bank promotion requirements tracking           |
+| #    | Feature                                        |
+| ---- | ---------------------------------------------- |
+| 2    | Bank API import (automatic + on-demand)        |
+| 9    | Subscription tracking & reminders              |
+| 17.1 | Receipt photo/scan attachment                  |
+| 17.2 | Import transaction from uploaded receipt (OCR) |
+| 18   | Bank promotion requirements tracking           |
 
 ### Phase 4 — Wealth & Forecasting
 
-| #      | Feature                                      |
-| ------ | -------------------------------------------- |
-| 19     | Assets & encumbrances, net worth calculation |
-| 20     | Retirement forecasting                       |
-| 11.6.1 | AI-powered budget forecasting                |
-| 12     | Dedicated mobile app (native or PWA)         |
-| 16.7-8 | Custom dashboard widgets                     |
+| #    | Feature                                      |
+| ---- | -------------------------------------------- |
+| 19   | Assets & encumbrances, net worth calculation |
+| 20   | Retirement forecasting                       |
+| 11.6 | AI-powered budget forecasting                |
+| 12   | Dedicated mobile app (native or PWA)         |
+| 16.7 | Custom dashboard widgets                     |
 
 ---
 
@@ -192,7 +195,7 @@
   1. User selects report type (monthly, yearly, category, comparison, per-user)
   2. User selects parameters (period, category, user)
   3. System aggregates data and renders charts/tables
-  4. System indicates if savings occurred (receipts > expenses)
+  4. System indicates if savings occurred (income > expenses)
   5. User can **export to PDF or CSV**
 - **Outcome:** Visual report with optional download
 - **Query:** `GenerateReport`
@@ -204,8 +207,8 @@
 - **Trigger:** User opens Budgets section
 - **Flow:**
   1. User sets a spending limit per category per month
-  2. User optionally enters projected receipts
-  3. System calculates: projected expenses, receipts, and savings
+  2. User optionally enters projected income
+  3. System calculates: projected expenses, income, and savings
   4. System colors categories green (under budget) or red (over budget)
   5. System sends an alert when a budget threshold is crossed
 - **Outcome:** Active budget with real-time tracking
@@ -239,7 +242,7 @@
 - **Actor:** Household Member
 - **Trigger:** User opens the app
 - **Flow:**
-  1. System shows dashboard for **current month by default** (user can select any month): pie chart of top expense categories, monthly balance, total expenses, total receipts, budget status (shown only when budgets exist — Phase 2+), account summary
+  1. System shows dashboard for **current month by default** (user can select any month): pie chart of top expense categories, monthly balance, total expenses, total income, budget status (shown only when budgets exist — Phase 2+), account summary
   2. Dashboard **refreshes in real-time** after each save (transaction add/edit/split/categorize)
   3. Aggregates are **calculated on the fly** for MVP (optimize later if needed)
   4. (Phase 4) User can add/remove custom dashboard widgets (text, image, chosen report)
@@ -314,10 +317,11 @@
 - **Flow:**
   1. On household creation, system auto-creates a default account ("Cash", in the household's main currency)
   2. User can add accounts (name, currency, initial balance)
-  3. User can rename or deactivate accounts
-  4. Deactivation is soft — historical transactions remain linked
+  3. User can rename an account or make it the default (the default account is preselected when recording a transaction)
+  4. User can deactivate an account. Deactivation is soft — the account is no longer offered for new transactions, but its transactions stay in lists, filters, and reports
+  5. System rejects deactivating the default account (make another account the default first) or the household's last active account
 - **Outcome:** Account list available for recording transactions
-- **Command:** `AddAccount`, `RenameAccount`, `DeactivateAccount`
+- **Command:** `AddAccount`, `RenameAccount`, `SetDefaultAccount`, `DeactivateAccount`
 
 ---
 
@@ -426,9 +430,9 @@ End of month (or on-demand)
 > **Beginner tip:** Think of a bounded context as a department in a company. Each department has its own vocabulary and rules. The "Account" in the Finance department is a bank account; in IT it's a login. Bounded contexts prevent confusion by keeping these meanings separate.
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
+┌────────────────────────────────────────────────────────────────────┐
 │                        PERSONAL FINANCE APP                        │
-│                                                                     │
+│                                                                    │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
 │  │   Identity &     │  │   Transaction    │  │   Budgeting      │  │
 │  │   Access         │  │   Management     │  │                  │  │
@@ -448,7 +452,7 @@ End of month (or on-demand)
 │  │  • BalanceSnap.  │  │  • PaymentCheck  │  │  • RawTransaction│  │
 │  │  • ReportExport  │  │                  │  │                  │  │
 │  └──────────────────┘  └──────────────────┘  └──────────────────┘  │
-│                                                                     │
+│                                                                    │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
 │  │   Wealth         │  │   Promotion      │  │   Currency       │  │
 │  │   Management     │  │   Tracking       │  │   Exchange       │  │
@@ -458,7 +462,7 @@ End of month (or on-demand)
 │  │  • NetWorth      │  │  • Compliance    │  │                  │  │
 │  │  • RetirementPlan│  │                  │  │                  │  │
 │  └──────────────────┘  └──────────────────┘  └──────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -469,15 +473,15 @@ End of month (or on-demand)
 
 #### Bounded Context: Transaction Management
 
-| Concept              | Type                                  | Description                                                                                                                                                 |
-| -------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Transaction**      | **Aggregate Root (Entity)**           | A single financial event. Has a unique ID, **type** (Income or Expense), date, total amount (always positive), account, user, comment. Controls its Splits. |
-| **TransactionSplit** | Entity (inside Transaction aggregate) | One portion of a split transaction — links a sub-amount to a category. Identity matters because you edit/delete specific splits.                            |
-| **Money**            | Value Object                          | Amount + Currency (e.g., 150.00 PLN). Immutable — you don't change a Money, you create a new one. Two `Money(150, PLN)` are equal.                          |
-| **Category**         | Aggregate Root (Entity)               | A user-defined expense/income label (e.g., "Groceries", "Rent"). Has a unique ID, name, icon, color.                                                        |
-| **Account**          | Aggregate Root (Entity)               | A bank account or cash wallet. Has ID, name, currency, current balance.                                                                                     |
-| **Receipt**          | Entity (inside Transaction aggregate) | An attached photo/scan of a paper receipt. Stored as a file reference.                                                                                      |
-| **TransactionType**  | Value Object                          | Either `Income` or `Expense`. Determines the meaning of the amount — always positive, direction determined by type.                                         |
+| Concept              | Type                                  | Description                                                                                                                                                           |
+| -------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Transaction**      | **Aggregate Root (Entity)**           | A single financial event. Has a unique ID, **type** (Income or Expense), date, total amount (always positive), account, category, user, comment. Controls its Splits. |
+| **TransactionSplit** | Entity (inside Transaction aggregate) | One portion of a split transaction — links a sub-amount to a category. Identity matters because you edit/delete specific splits.                                      |
+| **Money**            | Value Object                          | Amount + Currency (e.g., 150.00 PLN). Immutable — you don't change a Money, you create a new one. Two `Money(150, PLN)` are equal.                                    |
+| **Category**         | Aggregate Root (Entity)               | A user-defined expense/income label (e.g., "Groceries", "Rent"). Has a unique ID, name, type (Expense or Income), icon, color, sort order.                            |
+| **Account**          | Aggregate Root (Entity)               | A bank account or cash wallet. Has ID, name, currency, initial balance, active and default flags; the current balance is calculated from its transactions.            |
+| **Receipt**          | Entity (inside Transaction aggregate) | An attached photo/scan of a paper receipt. Stored as a file reference.                                                                                                |
+| **TransactionType**  | Value Object                          | Either `Income` or `Expense`. Determines the meaning of the amount — always positive, direction determined by type.                                                   |
 
 **Key Rule (Invariant):**
 
@@ -494,11 +498,11 @@ End of month (or on-demand)
 
 #### Bounded Context: Budgeting
 
-| Concept          | Type                    | Description                                                                                                            |
-| ---------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Budget**       | Aggregate Root (Entity) | A spending limit for a category in a given month. Has ID, category reference, month, limit amount, projected receipts. |
-| **BudgetStatus** | Value Object            | Calculated state: `UnderBudget` or `OverBudget`, with actual vs. limit amounts. Determines green/red coloring.         |
-| **Forecast**     | Value Object            | AI-generated projection of future expenses/receipts/savings based on historical data.                                  |
+| Concept          | Type                    | Description                                                                                                          |
+| ---------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Budget**       | Aggregate Root (Entity) | A spending limit for a category in a given month. Has ID, category reference, month, limit amount, projected income. |
+| **BudgetStatus** | Value Object            | Calculated state: `UnderBudget` or `OverBudget`, with actual vs. limit amounts. Determines green/red coloring.       |
+| **Forecast**     | Value Object            | AI-generated projection of future expenses/income/savings based on historical data.                                  |
 
 **Key Rule:**
 
@@ -546,10 +550,10 @@ End of month (or on-demand)
 
 #### Bounded Context: Reporting & Analytics
 
-| Concept             | Type         | Description                                                                                                                                |
-| ------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **BalanceSnapshot** | Value Object | A point-in-time record of monthly savings: total income − total expenses for a given month. Stored monthly for the savings graph (Req 15). |
-| **ReportExport**    | Value Object | A generated file (PDF or CSV) representing a report. Has format, data snapshot, and download URL.                                          |
+| Concept             | Type         | Description                                                                                                                                         |
+| ------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **BalanceSnapshot** | Value Object | A point-in-time record of monthly savings: total income − total expenses for a given month. Stored monthly for the savings graph (Req 15).          |
+| **ReportExport**    | Value Object | A generated file (PDF or CSV) representing a report. Has a format and the report data; generated on request and streamed to the user as a download. |
 
 ---
 
@@ -602,6 +606,7 @@ End of month (or on-demand)
 | `CategoryDeleted`                      | Transaction Management               | Reporting                                | Remove category from lists and aggregations                                 |
 | `CategoriesReordered`                  | Transaction Management               | Reporting                                | Update display order in category lists                                      |
 | `AccountRenamed`                       | Transaction Management               | Reporting                                | Update account labels in read models                                        |
+| `DefaultAccountChanged`                | Transaction Management               | —                                        | New transactions preselect this account                                     |
 | `AccountDeactivated`                   | Transaction Management               | Reporting                                | Remove account from active lists; historical data preserved                 |
 | `UncategorizedTransactionCreated`      | Transaction Management               | —                                        | Triggers login prompt for user to categorize                                |
 | **Budgeting (lifecycle)**              |                                      |                                          |                                                                             |
@@ -673,28 +678,30 @@ End of month (or on-demand)
 
 > **Beginner tip:** The Ubiquitous Language is a shared vocabulary used by everyone on the project — developers, designers, product owners. If the domain expert says "transaction," the code should have a class called `Transaction`, not `FinancialRecord` or `MoneyEvent`. This eliminates translation errors.
 
-| Term                | Definition                                                                                                    |
-| ------------------- | ------------------------------------------------------------------------------------------------------------- | --- | -------------------- | --------------------------------------------------------------------------------- |
-| **Transaction**     | A single financial event — money in or money out of an Account                                                |
-| **TransactionType** | Either `Income` (money in) or `Expense` (money out). Amount is always positive; the type determines direction |
-| **Split**           | A portion of a Transaction assigned to a specific Category                                                    |
-| **Category**        | A user-defined label for classifying expenses or income (e.g., "Groceries")                                   |
-| **Account**         | A financial container — bank account, cash wallet, or savings account                                         |
-| **Household**       | A group of Users who share financial tracking with equal access — every member can do everything              |
-| **Budget**          | A spending limit set for a Category within a time period (usually monthly)                                    |
-| **Subscription**    | A recurring payment obligation (e.g., Netflix, electricity)                                                   |
-| **Asset**           | Something of value owned (apartment, car, investment portfolio)                                               |
-| **Encumbrance**     | A financial obligation or debt (mortgage, loan)                                                               |
-| **Net Worth**       | Total value of Assets minus total Encumbrances                                                                |
-| **Receipt**         | A photo or scan of a paper proof of purchase, attached to a Transaction                                       |
-| **Promotion**       | A bank offer with conditions that must be met monthly for benefits                                            |
-| **Import Batch**    | A set of Transactions downloaded from a Bank API in one operation                                             |
-| **Exchange Rate**   | The conversion ratio between two currencies on a given date                                                   |
-| **Forecast**        | A prediction of future expenses, receipts, or savings based on historical data                                |
-| **Invitation**      | A pending request for a new User to join a Household; any member can send one                                 |
-| **Main Currency**   | The Household's primary currency, used for consolidated reporting                                             |     | **Balance Snapshot** | A monthly record of total income minus total expenses, used for the savings graph |
-| **Report Export**   | A generated file (PDF or CSV) representing a report, available for download                                   |
-| **Default Account** | The "Cash" account auto-created when a new Household is set up, in the household's main currency              |
+| Term                 | Definition                                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Transaction**      | A single financial event — money in or money out of an Account                                                                       |
+| **TransactionType**  | Either `Income` (money in) or `Expense` (money out). Amount is always positive; the type determines direction                        |
+| **Income**           | Money coming in — a Transaction of type `Income`. Not the same as a Receipt (a proof of purchase)                                    |
+| **Split**            | A portion of a Transaction assigned to a specific Category                                                                           |
+| **Category**         | A user-defined label for classifying expenses or income (e.g., "Groceries")                                                          |
+| **Account**          | A financial container — bank account, cash wallet, or savings account                                                                |
+| **Household**        | A group of Users who share financial tracking with equal access — every member can do everything                                     |
+| **Budget**           | A spending limit set for a Category within a time period (usually monthly)                                                           |
+| **Subscription**     | A recurring payment obligation (e.g., Netflix, electricity)                                                                          |
+| **Asset**            | Something of value owned (apartment, car, investment portfolio)                                                                      |
+| **Encumbrance**      | A financial obligation or debt (mortgage, loan)                                                                                      |
+| **Net Worth**        | Total value of Assets minus total Encumbrances                                                                                       |
+| **Receipt**          | A photo or scan of a paper proof of purchase, attached to a Transaction                                                              |
+| **Promotion**        | A bank offer with conditions that must be met monthly for benefits                                                                   |
+| **Import Batch**     | A set of Transactions downloaded from a Bank API in one operation                                                                    |
+| **Exchange Rate**    | The conversion ratio between two currencies on a given date                                                                          |
+| **Forecast**         | A prediction of future expenses, income, or savings based on historical data                                                         |
+| **Invitation**       | A pending request for a new User to join a Household; any member can send one                                                        |
+| **Main Currency**    | The Household's primary currency, used for consolidated reporting                                                                    |
+| **Balance Snapshot** | A monthly record of total income minus total expenses, used for the savings graph                                                    |
+| **Report Export**    | A generated file (PDF or CSV) representing a report, available for download                                                          |
+| **Default Account**  | The account preselected when recording a transaction — initially the "Cash" account created with the Household, in its main currency |
 
 ---
 

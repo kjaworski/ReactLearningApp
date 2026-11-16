@@ -70,8 +70,8 @@ Integration with subscriptions (like Netflix, Play, Energa, etc.).
 1. Budget for each category
 2. Alerts when the budget is exceeded
 3. Expenses below budget colored in green and above budget in red
-4. Recording of projected receipts
-5. Forecasted total expenses, total receipts, and savings (difference between receipts and expenses)
+4. Recording of projected income
+5. Forecasted total expenses, total income, and savings (difference between income and expenses)
 6. Forecasted value of budgets based on previous months' data
    1. Integration with AI
 
@@ -95,7 +95,7 @@ See how my savings are going month by month.
 1. Pie chart with categories of biggest expenses
 2. Balance in a given month
 3. Total expenses in a given month
-4. Total receipts in a given month
+4. Total income in a given month
 5. Budgets
 6. Summary of accounts
 7. Custom widgets (text, image, chosen report)
@@ -123,3 +123,16 @@ See how my savings are going month by month.
 
 1. Enter current age, target retirement age, desired monthly income, current savings
 2. System calculates scenarios: how much to save, how long to work, projected pension
+
+## 21. Household Members
+
+1. Everyone in a household shares the same data and has the same permissions
+2. Invite a new member by email; the invitation expires after 7 days and works only once
+3. Resend or revoke a pending invitation
+
+## 22. Accounts
+
+1. A default account ("Cash") is created together with the household
+2. Add accounts (name, currency, initial balance)
+3. Rename an account; choose which account is the default
+4. Deactivate an account that is no longer used — its history is kept

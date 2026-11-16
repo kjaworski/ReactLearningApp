@@ -10,14 +10,14 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        MONOREPO (pnpm + Turborepo)              │
-│                                                                  │
-│  apps/                                                           │
-│  ├── web/          Next.js 15 (App Router)     ← Frontend       │
-│  └── api/          NestJS 11 (latest stable)   ← Backend API    │
-│                                                                  │
-│  packages/                                                       │
+│                                                                 │
+│  apps/                                                          │
+│  ├── web/          Next.js 16 (App Router)     ← Frontend       │
+│  └── api/          NestJS 12 (latest stable)   ← Backend API    │
+│                                                                 │
+│  packages/                                                      │
 │  └── shared/       Shared TypeScript types     ← DTOs, enums    │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌───────────────┐         ┌──────────────────┐      ┌────────────┐
@@ -39,7 +39,7 @@
 
 | Category            | Choice                              | Why                                                                                                                                                 |
 | ------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**       | **Next.js 15** (App Router)         | Industry standard for full-stack React. SSR, Server Components, file-based routing. Highest job market value.                                       |
+| **Framework**       | **Next.js 16** (App Router)         | Industry standard for full-stack React. SSR, Server Components, file-based routing. Highest job market value.                                       |
 | **Language**        | **TypeScript**                      | Type safety, shared types with backend via `packages/shared/`                                                                                       |
 | **Styling**         | **Tailwind CSS**                    | Utility-first, fast iteration, built-in dark mode, mobile-first responsive                                                                          |
 | **UI Components**   | **shadcn/ui** (Radix UI primitives) | Copy-paste components (you own the code), accessible, Tailwind-based, dark mode built-in. Not an npm dependency — components live in your codebase. |
@@ -48,22 +48,22 @@
 | **Auth (frontend)** | **NextAuth.js (Auth.js) v5**        | Handles Google OAuth flow, session management, secure httpOnly cookies, CSRF protection. Industry standard for Next.js.                             |
 | **Forms**           | **React Hook Form + Zod**           | Performant forms (no re-renders) + schema validation shared with backend                                                                            |
 | **Virtual scroll**  | **TanStack Virtual**                | Windowed rendering for the transaction list (HS-10 resolution)                                                                                      |
-| **Charts**          | **Recharts**                        | React-native charting (pie charts for dashboard, line charts for savings graph)                                                                     |
-| **PDF export**      | **jsPDF + jsPDF-AutoTable**         | Client-side PDF generation for report export (HS-15)                                                                                                |
-| **CSV export**      | **Papaparse**                       | CSV generation/parsing                                                                                                                              |
+| **Charts**          | **Recharts**                        | Charting built for React (pie charts for dashboard, line charts for savings graph)                                                                  |
+| **Report export**   | Server-side (API)                   | Download buttons call the API's export endpoints; PDF and CSV files are generated on the server (see Backend, HS-15)                                |
 
 ### Backend — `apps/api/`
 
 | Category           | Choice                                                    | Why                                                                                                                                                                                                                                                                                                            |
 | ------------------ | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**      | **NestJS 11** (latest stable)                             | Modular architecture maps 1:1 to bounded contexts. Built-in DI, CQRS module, guards (like .NET `[Authorize]`), pipes (like .NET model validation). Feels like ASP.NET Core.                                                                                                                                    |
+| **Framework**      | **NestJS 12** (latest stable)                             | Modular architecture maps 1:1 to bounded contexts. Built-in DI, CQRS module, guards (like .NET `[Authorize]`), pipes (like .NET model validation). Feels like ASP.NET Core.                                                                                                                                    |
 | **Language**       | **TypeScript**                                            | Shared types with frontend                                                                                                                                                                                                                                                                                     |
-| **Database**       | **PostgreSQL 16**                                         | Relational integrity for financial data. JSONB for semi-structured data (OCR results, bank imports, promotion rules). Industry standard for fintech.                                                                                                                                                           |
+| **Database**       | **PostgreSQL 18**                                         | Relational integrity for financial data. JSONB for semi-structured data (OCR results, bank imports, promotion rules). Industry standard for fintech.                                                                                                                                                           |
 | **ORM**            | **Prisma 7**                                              | Type-safe auto-generated client, declarative schema, easy migrations, great DX. Most popular TypeScript ORM. V7 requires a driver adapter (`@prisma/adapter-pg`).                                                                                                                                              |
-| **Auth (backend)** | **Passport.js + JWT** (`@nestjs/passport`, `@nestjs/jwt`) | Validates JWT tokens issued by NextAuth.js. `JwtAuthGuard` = equivalent of .NET `[Authorize]`.                                                                                                                                                                                                                 |
+| **Auth (backend)** | **Passport.js + JWT** (`@nestjs/passport`, `@nestjs/jwt`) | Issues JWTs on login (`/auth/login`) and validates them on every request; NextAuth.js stores the token and forwards it. `JwtAuthGuard` = equivalent of .NET `[Authorize]`.                                                                                                                                     |
 | **Validation**     | **class-validator + class-transformer**                   | Decorator-based DTO validation (like .NET `[Required]`, `[MaxLength]`). NestJS pipes auto-validate.                                                                                                                                                                                                            |
 | **CQRS**           | **@nestjs/cqrs**                                          | Separate command/query handlers per bounded context. Events bus for cross-context communication. **Note:** the event bus is in-memory — works for a single instance. For multi-instance deployment (ECS Fargate with multiple tasks), add an external event bus (e.g., Redis pub/sub or Amazon SNS/SQS) later. |
 | **API style**      | **REST**                                                  | Standard for job market. OpenAPI/Swagger via `@nestjs/swagger` for auto-generated docs.                                                                                                                                                                                                                        |
+| **Report export**  | **pdfmake** (PDF) + **csv-stringify** (CSV)               | Reports are generated on the server and streamed as file downloads: one source of truth for the numbers, household scoping enforced by the API, works for long date ranges, and reusable later for e-mailed reports. pdfmake builds paginated tables without a headless browser.                               |
 | **Logging**        | **Pino** (via `nestjs-pino`)                              | Structured JSON logging, fast, production-ready                                                                                                                                                                                                                                                                |
 
 ### Shared — `packages/shared/`
@@ -80,11 +80,11 @@
 | Category             | Choice                                             | Why                                                                                                                              |
 | -------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Monorepo**         | **pnpm + Turborepo**                               | pnpm = fast, strict, saves disk space. Turborepo = smart build caching, parallel tasks. Industry standard for Next.js monorepos. |
-| **Testing**          | **Jest** (unit/integration) + **Playwright** (E2E) | Jest is NestJS default. Playwright is modern E2E (cross-browser, auto-waiting).                                                  |
+| **Testing**          | **Vitest** (unit/API tests) + **Playwright** (E2E) | Vitest is the NestJS 12 default (native TS + ESM, Jest-like API). Playwright is modern E2E (cross-browser, auto-waiting).        |
 | **Linting**          | **ESLint + Prettier**                              | Code quality + consistent formatting                                                                                             |
 | **Git hooks**        | **Husky + lint-staged**                            | Pre-commit linting/formatting                                                                                                    |
 | **API docs**         | **Swagger (OpenAPI)** via `@nestjs/swagger`        | Auto-generated API documentation from decorators                                                                                 |
-| **Containerization** | **Docker + Docker Compose**                        | Local dev environment (PostgreSQL, app). Also used for AWS deployment.                                                           |
+| **Containerization** | **Docker + Docker Compose**                        | Local PostgreSQL via Docker Compose; container images for deployment (post-MVP)                                                  |
 
 ### Deployment — AWS
 
@@ -93,7 +93,7 @@
 | **Next.js frontend** | **AWS Amplify Hosting**                        | Native Next.js SSR support, auto-deploys from git, built-in CDN, preview environments                                      |
 | **NestJS backend**   | **AWS ECS Fargate** (or Lambda via Serverless) | Containerized deployment, auto-scaling, no server management. Fargate for long-running processes (bank import schedulers). |
 | **Database**         | **AWS RDS PostgreSQL**                         | Managed PostgreSQL, automated backups, Multi-AZ for production                                                             |
-| **File storage**     | **AWS S3**                                     | Receipt photos/scans, PDF exports                                                                                          |
+| **File storage**     | **AWS S3**                                     | Receipt photos/scans — private bucket, upload/download via presigned URLs (HS-26)                                          |
 | **Secrets**          | **AWS Secrets Manager**                        | API keys, database credentials, OAuth secrets                                                                              |
 | **Scheduling**       | **AWS EventBridge**                            | Cron triggers for daily exchange rate sync, subscription reminders                                                         |
 | **Email**            | **AWS SES**                                    | Invitation emails, alerts, reminders                                                                                       |
@@ -117,7 +117,7 @@ apps/api/src/
 │   ├── currency/              ← Currency Exchange (ExchangeRate sync)
 │   └── promotion/             ← Promotion Tracking (Promotion, Compliance)
 ├── common/                    ← Shared guards, pipes, decorators, filters
-├── prisma/                    ← Prisma service, schema, migrations
+├── prisma/                    ← PrismaModule + PrismaService (schema and migrations live in apps/api/prisma/)
 └── main.ts
 ```
 
@@ -198,8 +198,6 @@ tailwindcss, @tailwindcss/postcss ← Styling (PostCSS plugin for Next.js; @tail
 zod, react-hook-form, @hookform/resolvers ← Forms
 @tanstack/react-virtual        ← Virtual scroll
 recharts                       ← Charts
-jspdf, jspdf-autotable         ← PDF export
-papaparse                      ← CSV export
 ```
 
 ### Backend (`apps/api/package.json`)
@@ -207,11 +205,12 @@ papaparse                      ← CSV export
 ```
 @nestjs/core, @nestjs/platform-express
 @nestjs/cqrs                   ← CQRS
-@nestjs/passport, passport-jwt ← Auth guards
+@nestjs/passport, @nestjs/jwt, passport-jwt, bcrypt ← Auth (JWT guards, password hashing)
 @nestjs/swagger                ← API docs
 @nestjs/config                 ← Environment config
 @nestjs/schedule               ← Cron jobs
 @prisma/client, prisma         ← ORM (Prisma 7 + @prisma/adapter-pg driver adapter)
 class-validator, class-transformer ← DTO validation
-nestjs-pino, pino              ← Logging
+nestjs-pino, pino, pino-http   ← Logging (pino-http is a required peer of nestjs-pino 5)
+pdfmake, csv-stringify         ← Report export (PDF, CSV)
 ```

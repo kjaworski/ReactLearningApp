@@ -15,12 +15,12 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 1. ~~**Initialize pnpm monorepo** — create root `package.json`, `pnpm-workspace.yaml`, `turbo.json`. Workspace structure: `apps/web`, `apps/api`, `packages/shared`~~ ✅
 2. ~~**Scaffold NestJS backend** (`apps/api`) — `nest new` with TypeScript strict mode, remove boilerplate, set up module structure per tech-stack.md~~ ✅
 3. ~~**Scaffold Next.js frontend** (`apps/web`) — `create-next-app` with App Router, TypeScript, Tailwind CSS, ESLint~~ ✅
-4. ~~**Set up shared types package** (`packages/shared`) — `package.json`, `tsconfig.json`, export barrel file. Add `TransactionType` enum and basic DTOs as first shared types~~ ✅
-5. ~~**Docker Compose** — PostgreSQL 16 container for local dev (port 5432), volume for data persistence. Optional: pgAdmin container~~ ✅
+4. ~~**Set up shared types package** (`packages/shared`) — `package.json`, `tsconfig.json`, export barrel file. Add `TransactionType` enum as the first shared type~~ ✅
+5. ~~**Docker Compose** — PostgreSQL 18 container for local dev (port 5432), volume for data persistence. Optional: pgAdmin container~~ ✅
 6. ~~**Prisma setup** (`apps/api/prisma/`) — install Prisma, create initial `schema.prisma` with datasource config, generate client~~ ✅
 7. ~~**ESLint + Prettier** — shared config at root, workspace-specific overrides~~ ✅
 8. ~~**Husky + lint-staged** — pre-commit hook for linting + formatting~~ ✅
-9. ~~**Environment config** — `.env.example` with DATABASE_URL, JWT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_SECRET, NEXTAUTH_URL~~ ✅
+9. ~~**Environment config** — one `.env.example` per app: `apps/api` (DATABASE_URL, JWT settings) and `apps/web` (NEXT_PUBLIC_API_URL)~~ ✅
 10. ~~**Turborepo pipelines** — configure `turbo.json` for `build`, `dev`, `lint`, `test` tasks with correct dependency graph~~ ✅
 
 > **Phase A completed** — all 10 steps done and verified. Commits `d902130` through `3d2a049`.
@@ -35,9 +35,10 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 **Relevant files:**
 
-- Root: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `.eslintrc.js`, `.prettierrc`, `docker-compose.yml`, `.env.example`
-- `apps/api/`: `nest-cli.json`, `tsconfig.json`, `src/main.ts`, `src/app.module.ts`
-- `apps/web/`: `next.config.ts`, `tsconfig.json`, `tailwind.config.ts`, `app/layout.tsx`
+- Root: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `.prettierrc`, `docker-compose.yml`
+- ESLint: a flat `eslint.config.mjs` in each package (architecture.md ADR-5)
+- `apps/api/`: `.env.example`, `nest-cli.json`, `tsconfig.json`, `src/main.ts`, `src/app.module.ts`
+- `apps/web/`: `.env.example`, `next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `src/app/globals.css` (Tailwind 4 is configured in CSS — no `tailwind.config.ts`), `src/app/layout.tsx`
 - `packages/shared/`: `package.json`, `tsconfig.json`, `src/index.ts`
 
 ---
@@ -70,9 +71,9 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 **Verification:**
 
-- ~~`npx prisma migrate dev` runs without errors~~ ✅
-- ~~`npx prisma studio` opens and shows all tables with correct columns and relationships~~ ✅
-- ~~`npx prisma db seed` populates default categories~~ ✅
+- ~~`pnpm exec prisma migrate dev` runs without errors~~ ✅
+- ~~`pnpm exec prisma studio` opens and shows all tables with correct columns and relationships~~ ✅
+- ~~`pnpm exec prisma db seed` populates default categories~~ ✅
 - ~~Generated Prisma Client types match the domain model from ddd-analysis.md section 5.2~~ ✅
 
 **Relevant files:**
@@ -99,6 +100,23 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 > Build UC-6 (Register & Login), UC-16 (Invite Member), household creation, default categories/account seeding. This is the auth foundation everything else depends on.
 
+**Progress** — Phase C is built in small learning steps (C1–C7):
+
+- ~~**C1** — install the backend libraries (auth, validation, logging)~~ ✅
+- ~~**C2** — `PrismaModule` (global) + `PrismaService`~~ ✅
+- ~~**C3** — common infrastructure: `JwtStrategy`, `JwtAuthGuard`, `HouseholdGuard`, `@CurrentUser()`, `PrismaExceptionFilter`, `AuthenticatedRequest`~~ ✅
+- **C4** — wire up `main.ts` + `app.module.ts` — _in progress_
+  - ~~`ConfigModule` (global), global `ValidationPipe`, global `PrismaExceptionFilter`~~ ✅
+  - Pino logger (`nestjs-pino`)
+  - Swagger UI at `/api/docs` (bearer auth)
+  - CORS for the frontend (`http://localhost:3000`)
+  - Replace the scaffold e2e test (it still expects `GET /` → "Hello World!") with a smoke test
+- **C5** — register + login (`POST /auth/register`, `POST /auth/login`) — _next_
+- **C6** — household + user profile endpoints
+- **C7** — invitation flow (create, accept, revoke, resend, expiry cron job)
+
+_Deferred:_ Google OAuth (`POST /auth/google`) and the NextAuth.js integration (step 3) move to the frontend work in Phase F; CQRS starts in Phase D.
+
 **Steps:**
 
 1. **NestJS common infrastructure** — before any module:
@@ -118,7 +136,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
      - On household creation: seed 23 default categories + "Cash" account (per UC-6, HS-1)
    - **Login flow** (UC-6 step 2-3):
      - `POST /auth/login` — validate credentials, return JWT (access + refresh tokens)
-     - JWT payload: `{ userId, householdId, email }`
+     - JWT payload: `{ sub: userId, householdId, email }` (`sub` = the standard JWT "subject" claim; `JwtStrategy` maps it to `request.user.userId`)
    - **Invitation flow** (UC-16):
      - `POST /households/:id/invitations` — create invitation, send email (mock email service for now)
      - `POST /invitations/:token/accept` — accept invitation, create user if new, add to household
@@ -136,7 +154,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
    - Configure NextAuth.js in `apps/web` with credentials provider + Google provider
    - NextAuth.js calls NestJS `/auth/login` and `/auth/google` endpoints
    - Store JWT in session, pass to API calls via Authorization header
-   - Auth middleware in Next.js to protect routes
+   - Route protection in Next.js via `proxy.ts` (Next.js 16 renamed `middleware.ts` to `proxy.ts`)
 
 **Verification:**
 
@@ -150,11 +168,11 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 **Relevant files:**
 
-- `apps/api/src/modules/identity/` — identity.module.ts, controllers/, commands/, queries/, dto/
-- `apps/api/src/common/` — guards/, decorators/, filters/, pipes/
+- `apps/api/src/modules/identity/` — identity.module.ts, controllers/, services/, dto/
+- `apps/api/src/common/` — guards/, decorators/, filters/, interfaces/
 - `apps/api/src/prisma/` — prisma.module.ts, prisma.service.ts
-- `apps/web/app/api/auth/[...nextauth]/route.ts` — NextAuth.js config
-- `apps/web/middleware.ts` — route protection
+- `apps/web/src/app/api/auth/[...nextauth]/route.ts` — NextAuth.js config
+- `apps/web/src/proxy.ts` — route protection
 
 ---
 
@@ -172,10 +190,10 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
    - `PUT /households/:id/categories/reorder` — update sortOrder for all categories
 
 2. **Account endpoints** (UC-17):
-   - `GET /households/:id/accounts` — list all active accounts
+   - `GET /households/:id/accounts` — list accounts with their `isActive` / `isDefault` flags (the transaction form offers only active ones)
    - `POST /households/:id/accounts` — add account (name, currency, initialBalance)
-   - `PATCH /accounts/:id` — rename
-   - `PATCH /accounts/:id/deactivate` — soft deactivate
+   - `PATCH /accounts/:id` — rename, or make it the default account
+   - `PATCH /accounts/:id/deactivate` — soft deactivate; rejected for the default account and for the last active account (HS-35)
 
 3. **Transaction endpoints** (UC-1, UC-3):
    - `POST /households/:id/transactions` — record transaction (type, date, amount, accountId, categoryId, userId, comment). CQRS: `RecordTransactionCommand` → `TransactionRecordedEvent`
@@ -193,7 +211,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 **Verification:**
 
 - Create categories → list them → reorder → rename → delete (reject if used)
-- Create accounts → list → rename → deactivate (still shows in historical txns)
+- Create accounts → list → rename → make default → deactivate (still shows in historical txns; the default and the last active account can't be deactivated)
 - Record income + expense transactions → appear in list
 - Split a transaction → verify split amounts sum to total → verify per-category totals update
 - Unsplit → reverts to single category
@@ -226,17 +244,17 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
    - `GET /households/:id/reports/monthly?month=2026-05` — all transactions grouped by category with totals
    - `GET /households/:id/reports/category-summary?from=2026-01&to=2026-05` — spending per category over period
 
-3. **Export endpoints** (UC-7, HS-15):
-   - `GET /households/:id/reports/monthly/export?month=2026-05&format=csv` — CSV download
-   - `GET /households/:id/reports/monthly/export?month=2026-05&format=pdf` — PDF download (server-side generation with pdfkit or similar)
+3. **Export endpoints** (UC-7, HS-15) — files are generated on the server and streamed as downloads (`Content-Disposition: attachment`):
+   - `GET /households/:id/reports/monthly/export?month=2026-05&format=csv` — CSV download (`csv-stringify`). Escape text cells that start with `=`, `+`, `-` or `@` (CSV injection — comments and category names are user input)
+   - `GET /households/:id/reports/monthly/export?month=2026-05&format=pdf` — PDF download (`pdfmake`). Embed a Unicode font (e.g. Noto Sans) — the built-in PDF fonts can't show Polish letters such as ł, ą, ę
 
 **Verification:**
 
 - Dashboard returns correct totals matching manual calculation
 - Add a transaction → dashboard totals update (real-time per HS-13 — verify by re-fetching)
 - Monthly report groups transactions correctly by category
-- CSV export is valid, opens in Excel
-- PDF export renders cleanly
+- CSV export is valid, opens in Excel; a comment that starts with `=` shows as text, not as a formula
+- PDF export renders cleanly, including Polish characters
 
 **Relevant files:**
 
@@ -293,14 +311,14 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 7. **Account management page** (`/accounts`) — UC-17:
    - List of accounts with currency and balance
    - Add account form (name, currency, initial balance)
-   - Rename inline
-   - Deactivate with confirmation
+   - Rename inline, make default
+   - Deactivate with confirmation (not offered for the default account or the last active one)
 
 8. **Reports page** (`/reports`) — UC-7:
    - Report type selector (Monthly Statement, Category Summary)
    - Period selector
    - Rendered report (table + charts)
-   - Export buttons: "Download PDF" and "Download CSV" (HS-15)
+   - Export buttons: "Download PDF" and "Download CSV" (HS-15) — fetch the file from the export endpoint with the user's token and save it
 
 9. **Settings page** (`/settings`) — UC-16, household management:
    - Household info (name, main currency)
@@ -318,16 +336,16 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 **Relevant files:**
 
-- `apps/web/app/(auth)/login/page.tsx`, `register/page.tsx`
-- `apps/web/app/(dashboard)/layout.tsx` — authenticated layout with sidebar
-- `apps/web/app/(dashboard)/dashboard/page.tsx`
-- `apps/web/app/(dashboard)/transactions/page.tsx`
-- `apps/web/app/(dashboard)/categories/page.tsx`
-- `apps/web/app/(dashboard)/accounts/page.tsx`
-- `apps/web/app/(dashboard)/reports/page.tsx`
-- `apps/web/app/(dashboard)/settings/page.tsx`
-- `apps/web/components/` — reusable components (TransactionForm, FilterBar, PieChart, etc.)
-- `apps/web/lib/api.ts` — TanStack Query hooks for API calls
+- `apps/web/src/app/(auth)/login/page.tsx`, `register/page.tsx`
+- `apps/web/src/app/(dashboard)/layout.tsx` — authenticated layout with sidebar
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx`
+- `apps/web/src/app/(dashboard)/transactions/page.tsx`
+- `apps/web/src/app/(dashboard)/categories/page.tsx`
+- `apps/web/src/app/(dashboard)/accounts/page.tsx`
+- `apps/web/src/app/(dashboard)/reports/page.tsx`
+- `apps/web/src/app/(dashboard)/settings/page.tsx`
+- `apps/web/src/components/` — reusable components (TransactionForm, FilterBar, PieChart, etc.)
+- `apps/web/src/lib/api.ts` — TanStack Query hooks for API calls
 
 ---
 
@@ -337,14 +355,14 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 **Steps:**
 
-1. **Backend unit tests** (Jest):
+1. **Backend unit tests** (Vitest):
    - Transaction invariant: split amounts must equal total
    - Category deletion rejection when transactions exist
    - Invitation expiry logic
    - Filter query builder (date range, cursor pagination)
    - Auth guard (valid/invalid/expired JWT)
 
-2. **Backend integration tests** (Jest + test database):
+2. **Backend integration tests** (Vitest + Supertest + test database):
    - Full registration flow → categories + account created
    - Transaction CRUD → verify database state
    - Invitation accept flow → user joins household
@@ -376,7 +394,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 **Verification:**
 
 - `turbo test` — all unit + integration tests pass
-- `npx playwright test` — all E2E scenarios pass
+- `pnpm exec playwright test` — all E2E scenarios pass
 - Lighthouse score > 90 for performance on dashboard page
 - No console errors in browser during full user journey
 
