@@ -20,7 +20,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 6. ~~**Prisma setup** (`apps/api/prisma/`) — install Prisma, create initial `schema.prisma` with datasource config, generate client~~ ✅
 7. ~~**ESLint + Prettier** — one Prettier config at the root, a flat ESLint config in each package~~ ✅
 8. ~~**Husky + lint-staged** — pre-commit hook for linting + formatting~~ ✅
-9. ~~**Environment config** — one `.env.example` per app: `apps/api` (DATABASE_URL, JWT settings) and `apps/web` (NEXT_PUBLIC_API_URL)~~ ✅
+9. ~~**Environment config** — one `.env.example` per app: `apps/api` (DATABASE_URL, JWT settings) and `apps/web` (API_URL)~~ ✅
 10. ~~**Turborepo pipelines** — configure `turbo.json` for `build`, `dev`, `lint`, `test` tasks with correct dependency graph~~ ✅
 
 > **Phase A completed** — all 10 steps done and verified. Commits `d902130` through `3d2a049`.
@@ -111,11 +111,11 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 **Notes for CI-1:**
 
 - CI only checks and reports — it never fixes or commits anything. Fixing stays local: the editor (Prettier is the workspace's default formatter), the pre-commit hook (lint-staged), `pnpm format`, and a `lint:fix` script. `permissions: contents: read` enforces this: the workflow's token can't push
-- `apps/api`'s `lint` script ends with `--fix` (Nest scaffold default), so in CI it would fix problems on the runner and pass instead of failing. Make `lint` check-only, as in `apps/web` and `packages/shared`, and move `--fix` to a new `lint:fix` script
+- `lint` is check-only in every package; `apps/api` also has `lint:fix` for local use. CI runs `pnpm lint`
 - Warnings don't fail ESLint: `apps/api` sets `no-floating-promises` and `no-unsafe-argument` to `warn`, so CI would list them and stay green. To fail on them, raise them to `error` or add `--max-warnings 0` to `lint`
 - Feedback: a failed check on the commit or pull request, the log of the failing step, and a GitHub notification (Settings → Notifications → Actions — can be limited to failed runs). `actions/setup-node` also registers problem matchers that turn ESLint and TypeScript errors into annotations on the file and line
 - A `concurrency` group cancels a run when a newer commit arrives on the same branch
-- Versions come from `package.json`, not from the workflow: `pnpm/action-setup` reads `packageManager`; `actions/setup-node` with `node-version-file: package.json` reads the Volta pin. `cache: pnpm` caches the pnpm store
+- Versions come from the repository, not from the workflow: `pnpm/action-setup` reads `packageManager`; `actions/setup-node` with `node-version-file: mise.toml` reads the Node.js pin. `cache: pnpm` caches the pnpm store
 - In CI, `pnpm install` refuses to change the lockfile (frozen lockfile is automatic)
 - From C2 on, the API imports the generated Prisma client, which is gitignored: CI then has to run `prisma generate` before lint, build, and test — for example as a Turborepo task they depend on
 - Later, when builds get slow: cache Turborepo's `.turbo` folder with `actions/cache`
@@ -128,7 +128,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - A lint error appears as an annotation on the file and line — if not, check whether Turborepo's `package:task:` prefix in front of each log line is the reason (`--log-prefix=none`)
 - The workflow file contains no Node.js or pnpm version
 
-**Relevant files:** `.github/workflows/ci.yml`, `.github/dependabot.yml`, `apps/api/package.json` (lint scripts), `README.md` (badge)
+**Relevant files:** `.github/workflows/ci.yml`, `.github/dependabot.yml`, `README.md` (badge)
 
 ---
 
@@ -136,15 +136,15 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 > The app is the exercise. Each phase adds architecture and security topics on top of its features: the developer drafts first (ADRs, threat models, diagrams), then Copilot reviews. Baselines are in tech-stack.md: Architecture style, Security baseline, AI features.
 
-| Phase        | Architecture                                                                                                                                                                      | Security                                                                                                                                                                                          |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **CI**       | Pipelines as code; least-privilege tokens                                                                                                                                         | Supply chain: what each CI-2 feature catches (vulnerable dependencies, leaked secrets, unsafe code patterns)                                                                                      |
-| **C**        | ADR-19: the architecture style (modular monolith, DDD modules, CQRS), so far only described in tech-stack.md; dependency injection and module boundaries; fail-fast configuration | Threat model of sign-up and sign-in (STRIDE); password hashing; JWT vs session cookies; CSRF and CORS; broken object-level authorization — a test proves that another household's ids are refused |
-| **D**        | Aggregates and invariants (splits add up to the total); commands vs queries; transaction boundaries                                                                               | Mass assignment (unknown fields are rejected); an authorization test for every endpoint                                                                                                           |
-| **E**        | Read models calculated on the fly vs precomputed (HS-14) — measure before optimizing                                                                                              | CSV injection; file downloads (`Content-Disposition`, content types)                                                                                                                              |
-| **F**        | Server vs client components; where state lives                                                                                                                                    | XSS (React escaping, no `dangerouslySetInnerHTML` with user data); Content Security Policy                                                                                                        |
-| **G**        | The performance targets (step 4)                                                                                                                                                  | OWASP ASVS 5.0 Level 1 review (step 5); dependency audit                                                                                                                                          |
-| **Post-MVP** | C4 diagrams; AWS and Azure Well-Architected reviews; an outbox table once events leave the process                                                                                | Cloud IAM least privilege, private networking, container image scanning, security logging                                                                                                         |
+| Phase        | Architecture                                                                                                                                                                                                        | Security                                                                                                                                                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CI**       | Pipelines as code; least-privilege tokens                                                                                                                                                                           | Supply chain: what each CI-2 feature catches (vulnerable dependencies, leaked secrets, unsafe code patterns)                                                                                                                        |
+| **C**        | ADR-20: the architecture style (modular monolith, DDD modules, CQRS), so far only described in tech-stack.md; dependency injection and module boundaries; fail-fast configuration; the first end-to-end slice (C3a) | Threat model of sign-up and sign-in (STRIDE); password hashing; JWT vs session cookies; CSRF, and why one origin needs no CORS (ADR-19); broken object-level authorization — a test proves that another household's ids are refused |
+| **D**        | Aggregates and invariants (splits add up to the total); commands vs queries; transaction boundaries                                                                                                                 | Mass assignment (unknown fields are rejected); an authorization test for every endpoint                                                                                                                                             |
+| **E**        | Read models calculated on the fly vs precomputed (HS-14) — measure before optimizing                                                                                                                                | CSV injection; file downloads (`Content-Disposition`, content types)                                                                                                                                                                |
+| **F**        | Server vs client components; where state lives                                                                                                                                                                      | XSS (React escaping, no `dangerouslySetInnerHTML` with user data); Content Security Policy                                                                                                                                          |
+| **G**        | The performance targets (step 4)                                                                                                                                                                                    | OWASP ASVS 5.0 Level 1 review (step 5); dependency audit                                                                                                                                                                            |
+| **Post-MVP** | C4 diagrams; AWS and Azure Well-Architected reviews; an outbox table once events leave the process                                                                                                                  | Cloud IAM least privilege, private networking, container image scanning, security logging                                                                                                                                           |
 
 **AI:** the AI features come in Phases 3–4 (tech-stack.md, AI features); each is built without AI first and then compared with an AI version. Until then, the AI topic is AI-assisted development: every generated change is read, understood, and checked against official documentation before it's committed.
 
@@ -159,12 +159,13 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 **Progress** — Phase C is built in small learning steps:
 
 - **C1** — Configuration: `@nestjs/config` loads `apps/api/.env`; the app refuses to start when a required variable is missing — _after CI-1_
-- **C2** — Database access: `PrismaModule` + `PrismaService`; the first endpoint, `GET /health`, checks the database connection
-- **C3** — Logging, API docs, and HTTP hardening: Pino logging, Swagger UI at `/api/docs`, CORS for `http://localhost:3000`, security headers (Helmet); the scaffold e2e test (still expects `GET /` → "Hello World!") becomes a `GET /health` smoke test
+- **C2** — Database access: `PrismaModule` + `PrismaService`; the first endpoint, `GET /api/health`, checks the database connection. Every route gets the `/api` prefix (`app.setGlobalPrefix('api')`), so each environment can route by path (architecture.md ADR-19); the endpoint paths below leave it out
+- **C3** — Logging, API docs, and HTTP hardening: Pino logging, Swagger UI at `/api/docs`, security headers (Helmet); the scaffold e2e test (still expects `GET /` → "Hello World!") becomes a `GET /api/health` smoke test
+- **C3a** — Vertical checkpoint: the Next.js home page shows the result of `GET /api/health` twice — fetched on the server through `API_URL` (read at request time) and in the browser through `/api` (a development-only rewrite in `next.config.ts`). The first end-to-end path: browser → Next.js → NestJS → PostgreSQL
 - **C4** — Register _(learning version)_: `POST /auth/register` — DTO validation, Argon2id password hash, duplicate email → 409
 - **C5** — Log in _(learning version)_: `POST /auth/login` returns a short-lived JWT
 - **C6** — Protected routes _(learning version)_: JWT strategy + guard, `@CurrentUser()`, `GET /users/me`
-- **C7** — Switch to Better Auth: replaces C4–C6; sessions in httpOnly cookies, users stay in our PostgreSQL
+- **C7** — Switch to Better Auth: replaces C4–C6; sessions in httpOnly cookies, users stay in our PostgreSQL; `BETTER_AUTH_URL` is the public origin (locally `http://localhost:3000`)
 - **C8** — Household on sign-up: household + default account + default categories in one transaction; `HouseholdGuard`
 - **C9** — Household and profile endpoints
 - **C10** — Invitations: create, accept, revoke, resend; a daily job expires old ones
@@ -173,10 +174,11 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 
 **Steps:**
 
-1. **Foundation** (C1–C3):
-   - `ConfigModule` (global) — loads `apps/api/.env`, validates required variables at startup. `JWT_REFRESH_EXPIRES_IN` isn't used by this plan (no refresh tokens: C5 issues a short-lived JWT, C7 switches to sessions) — remove it from `.env.example` and the README
-   - `PrismaModule` (global) — wraps the Prisma client, handles the connection lifecycle; `GET /health`
-   - Pino logger, Swagger UI (`@nestjs/swagger`, API groups by module), CORS, security headers (Helmet)
+1. **Foundation** (C1–C3a):
+   - `ConfigModule` (global) — loads `apps/api/.env`, validates required variables at startup
+   - `PrismaModule` (global) — wraps the Prisma client, handles the connection lifecycle; `GET /api/health`
+   - Pino logger, Swagger UI (`@nestjs/swagger`, API groups by module), security headers (Helmet)
+   - Checkpoint: the web home page calls the API — on the server and in the browser
 
 2. **Learning version of auth** (C4–C6) — built by hand to see how login works:
    - `POST /auth/register` — email + password; validated DTO (global `ValidationPipe`); password hashed with Argon2id; an exception filter maps a duplicate email (Prisma unique constraint) to 409 Conflict
@@ -205,8 +207,9 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 
 **Verification:**
 
-- The API refuses to start without `DATABASE_URL`; `GET /health` reports the database connection
+- The API refuses to start without `DATABASE_URL`; `GET /api/health` reports the database connection
 - Swagger UI opens at `/api/docs`
+- Checkpoint: the web home page shows the API status, fetched on the server and in the browser
 - Learning version: register → log in → call `GET /users/me` with the JWT
 - After the switch: sign up → session cookie → `GET /users/me`
 - Sign-up creates the household, the "Cash" account, and the default categories
@@ -222,6 +225,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 - `apps/api/src/common/` — guards/, decorators/, filters/
 - `apps/api/src/modules/identity/` — identity.module.ts, controllers/, services/, dto/
 - `apps/api/src/auth.ts` — Better Auth configuration (C7)
+- `apps/web/src/app/page.tsx`, `apps/web/next.config.ts` — checkpoint C3a
 
 ---
 
@@ -327,7 +331,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
    - `/login` — email + password form, "Sign in with Google" button (Google provider configured in Better Auth)
    - `/register` — registration form with default categories selection UI (HS-1: show list, user can toggle off categories they don't want)
    - Better Auth client (`better-auth/react`) for sign-in, sign-out, and the current session
-   - TanStack Query provider setup; API calls include the session cookie (`credentials: 'include'`)
+   - TanStack Query provider setup; API calls go to `/api` on the same origin, so the browser sends the session cookie by itself (architecture.md ADR-19)
    - Redirect logic in `src/proxy.ts`: unauthenticated → /login, authenticated → /dashboard
 
 3. **Dashboard page** (`/dashboard`) — UC-11:

@@ -19,9 +19,6 @@
     "prettier": "^3.10.1",
     "turbo": "^2.11.11"
   },
-  "volta": {
-    "node": "26.13.1"
-  },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",
     "*.{ts,tsx,json,md}": "prettier --write"

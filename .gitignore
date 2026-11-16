@@ -31,6 +31,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# personal mise overrides
+mise.local.toml
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

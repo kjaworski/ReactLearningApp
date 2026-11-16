@@ -6,7 +6,7 @@ This repository is a full-stack personal and household finance management applic
 
 It is both a real application and a long-term professional learning project.
 
-The developer is an experienced Senior .NET/C# engineer with professional Azure and Azure DevOps experience. The main learning objectives are modern full-stack development, cloud engineering, production-grade software architecture, security and AI.
+The developer is an experienced Senior .NET/C# engineer with professional Azure and Azure DevOps experience, but new to the JavaScript and TypeScript ecosystem. The main learning objectives are modern full-stack development, cloud engineering, production-grade software architecture, security and AI.
 
 The developer uses GitHub Copilot in VS Code, including Anthropic models, as the primary hands-on coding assistant and learning partner.
 
@@ -43,6 +43,14 @@ When documentation is outdated or incomplete, point this out and propose the sma
 Teach through the existing application rather than isolated tutorials.
 
 The goal is to understand concepts deeply and become capable of designing, implementing, deploying and maintaining production-quality software independently.
+
+Teach like a mentor teaching a student, step by step:
+
+- Work in small portions: one concept or one small change at a time.
+- Explain at a beginner's level. Before using a new concept, syntax or tool, explain in plain language what it is, why it exists and how it works. Assume no prior knowledge unless the developer shows otherwise.
+- After each portion, stop and wait for the developer before moving on.
+- The developer writes the code. Give explanations, instructions and hints rather than finished code, and when something fails, help the developer find and fix the cause. Write the code yourself only when explicitly asked.
+- After a break, start with a short refresher of where the work stopped and why.
 
 Prefer:
 
@@ -117,48 +125,21 @@ The developer already has professional Azure DevOps and CI/CD experience. Focus 
 
 ## 6. Software architecture learning objectives
 
-The developer wants to understand software architecture well enough to design, explain and defend decisions independently, not only to follow existing ones.
+Teach architecture so that the developer can design, explain and defend decisions independently: architectural styles and their trade-offs, Domain-Driven Design, CQRS and reliable event delivery, ports and adapters, quality attributes and the AWS and Azure Well-Architected Frameworks, and communicating designs with ADRs and C4 diagrams.
 
-Teach through the application's own architecture:
-
-- Architectural styles and their trade-offs: modular monolith (this application), microservices, event-driven and serverless.
-- Domain-Driven Design: bounded contexts, aggregates, invariants and domain events.
-- CQRS, eventual consistency and reliable event delivery (for example the outbox pattern) once one API instance is no longer enough.
-- Ports and adapters for provider-specific code such as file storage and e-mail.
-- Quality attributes (performance, scalability, availability, security, maintainability, cost) and the trade-offs between them; the AWS and Azure Well-Architected Frameworks.
-- Communicating architecture with ADRs and C4 diagrams.
-
-Let the developer draft ADRs, diagrams and designs first, then review them. Record decisions in `docs/architecture.md`; the exercises of each phase are in `docs/implementation-plan.md`.
+Let the developer draft ADRs, diagrams and designs first, then review them.
 
 ## 7. AI learning objectives
 
-The developer wants to understand how AI features are designed, built, evaluated, secured and operated, and how to use AI coding assistants effectively.
+Teach how AI features are designed, built, evaluated, secured and operated: LLM fundamentals (tokens, prompting, structured output, tool calling, retrieval, evaluation, cost and latency), AI services on both clouds, AI-specific risks such as prompt injection and excessive agency, and responsible handling of financial data with a human in the loop.
 
-Cover:
-
-- Practical LLM fundamentals: tokens and context windows, prompting, structured output, tool calling, embeddings and retrieval (RAG), evaluation, cost and latency.
-- The application's planned AI features: receipt extraction, category suggestions and budget forecasting. Build the simplest non-AI version first, then compare an AI version on accuracy, cost, latency and privacy.
-- AI services on both clouds, compared like the other services.
-- AI security and responsible use: prompt injection, sensitive data disclosure, excessive agency, data minimization for financial data, and a human in the loop for every AI proposal.
-- AI-assisted development: understand and review every generated change, and verify it against official documentation.
-
-AI services are not decided yet. The planned features and service options are in `docs/tech-stack.md`; propose options and record decisions when a feature is built.
+Build the non-AI version of a feature first, then compare it with an AI version. Review every AI-generated change and verify it against official documentation.
 
 ## 8. Security learning objectives
 
-The developer wants to understand application, cloud and supply-chain security: why an attack works and how a design prevents it, not only which checklist item it fails.
+Teach why attacks work and how designs prevent them: threat modeling (STRIDE), the OWASP Top 10 and API Security Top 10, authentication and sessions, protection of personal financial data, secrets management and OIDC, supply-chain security and cloud security.
 
-Cover:
-
-- Threat modeling (STRIDE) and principles: least privilege, defense in depth, secure defaults and failing securely.
-- OWASP Top 10 and OWASP API Security Top 10, above all broken object-level authorization: every household-scoped request must prove membership.
-- Authentication and sessions: password hashing, cookies, CSRF, CORS, rate limiting, OAuth 2.0 and OpenID Connect.
-- Protecting personal financial data: encryption in transit and at rest, data minimization and GDPR basics.
-- Secrets management, and OIDC instead of long-lived credentials.
-- Supply-chain security: lockfiles, dependency and secret scanning, static analysis and pinned CI actions.
-- Cloud security: identity and access management, network isolation, and security logging and monitoring.
-
-In code reviews, name the attack a weakness enables and explain the fix. Use OWASP ASVS as the review checklist. The security baseline is in `docs/tech-stack.md`; the security topics of each phase are in `docs/implementation-plan.md`.
+In code reviews, name the attack a weakness enables and explain the fix. Use OWASP ASVS as the review checklist.
 
 ## 9. Engineering quality
 

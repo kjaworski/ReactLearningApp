@@ -1,6 +1,6 @@
 # @finance/web — Next.js Frontend
 
-The web frontend for the Personal & Household Finance Manager, built with Next.js 16 (App Router) and React 19. For now it is the `create-next-app` starter page — the real screens are built in Phase F of the [implementation plan](../../docs/implementation-plan.md).
+The web frontend for the Personal & Household Finance Manager, built with Next.js 16 (App Router) and React 19. For now it is the `create-next-app` starter page — checkpoint C3a adds a first page that calls the API, and the real screens are built in Phase F of the [implementation plan](../../docs/implementation-plan.md).
 
 ## Development
 
@@ -17,7 +17,7 @@ Run these from `apps/web`, or run `pnpm dev` from the repository root to start t
 
 ```
 apps/web/
-├── .env.example          # Settings template (NEXT_PUBLIC_API_URL) — copy to .env
+├── .env.example          # Settings template (API_URL) — copy to .env
 ├── public/               # Static files (icons)
 ├── src/app/              # App Router: layout.tsx, page.tsx, globals.css
 ├── AGENTS.md             # Rules for AI coding agents (CLAUDE.md points here)

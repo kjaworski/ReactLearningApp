@@ -63,21 +63,26 @@ Technical decisions made during project scaffolding (Phase A). Each entry captur
 
 ---
 
-## ADR-4: Node.js 26 + pnpm 12, pinned per project
+## ADR-4: Node.js 26 + pnpm 12, pinned per project with mise
 
 **Decision:**
 
-- Node.js **26.13.1** (current LTS), pinned with Volta in the root `package.json`; every workspace package inherits it with `"volta": { "extends": "../../package.json" }`
-- pnpm **12.21.0**, pinned with the `packageManager` field in the root `package.json`
+- Node.js **26.13.1** (current LTS), pinned in `mise.toml` at the repository root
+- pnpm **12.21.0**, pinned with the `packageManager` field in the root `package.json`; `mise.toml` tells mise to read it from there (`idiomatic_version_file_enable_tools = ["pnpm"]`)
 
 **Why:**
 
-- Volta pins the exact Node version per project (like `.nvmrc`, but cross-platform) and switches to it automatically inside the repo
-- Volta reads only the **nearest** `package.json` — without `extends`, scripts running inside `apps/*` and `packages/*` would use Volta's default Node instead of the pinned one
-- pnpm switches itself to the `packageManager` version and records it in `pnpm-lock.yaml` (`packageManagerDependencies`); no Corepack needed (it is no longer bundled with Node.js)
-- On Windows, a global pnpm 11 older than 11.28.4 can't switch to pnpm 12 ([pnpm#16594](https://github.com/pnpm/pnpm/issues/16594)) — update it first
+- [mise](https://mise.jdx.dev/) installs the pinned versions (`mise install`) and switches to them automatically inside the repo, on Windows, macOS, and Linux
+- mise reads its configuration from the current folder upwards, so one `mise.toml` at the root covers every package
+- Each version is written once: Node.js in `mise.toml`, pnpm in `packageManager` — which pnpm, Turborepo, and CI read as well
+- pnpm also switches itself to the `packageManager` version and records it in `pnpm-lock.yaml` (`packageManagerDependencies`); no Corepack needed (it is no longer bundled with Node.js)
+- The same file can pin the tools of later phases (Terraform, kubectl, Helm)
 
-**Revisit:** Volta is no longer maintained and recommends [mise](https://mise.jdx.dev/) — one `mise.toml` at the root would cover every package without `extends`.
+**Alternatives considered:**
+
+- Volta — unmaintained; its README recommends mise. It also reads only the nearest `package.json`, so every package would need `"volta": { "extends": "../../package.json" }`
+- pnpm installing Node.js itself (`devEngines.runtime`) — one tool fewer, but it covers only Node.js
+- nvm-windows or fnm — Node.js only
 
 ---
 
@@ -327,7 +332,7 @@ Cross-cutting decisions about how the app is checked, built, and deployed. CI st
 
 ## ADR-17: CI/CD on GitHub Actions
 
-**Decision:** GitHub Actions checks every push to `main` and every pull request — format, lint, build, tests. Post-MVP, deployments run on GitHub Actions too and sign in to AWS and Azure with OpenID Connect (OIDC). The exception is AWS Amplify, which builds the frontend from the repository itself.
+**Decision:** GitHub Actions checks every push to `main` and every pull request — format, lint, build, tests. Planned: the first workflow is step CI-1. Post-MVP, deployments run on GitHub Actions too and sign in to AWS and Azure with OpenID Connect (OIDC).
 
 **Why:**
 
@@ -341,7 +346,7 @@ Cross-cutting decisions about how the app is checked, built, and deployed. CI st
 
 - CI only verifies: it runs check-only commands (`prettier --check`, ESLint without `--fix`) and reports the result; fixing happens locally (editor, pre-commit hook). It never commits — its read-only token couldn't push anyway
 - The `GITHUB_TOKEN` gets `permissions: contents: read` by default; only deploy jobs add `id-token: write`, which OIDC needs
-- Tool versions come from the root `package.json`, not from the workflow: `pnpm/action-setup` reads `packageManager`, and `actions/setup-node` with `node-version-file: package.json` reads the Volta pin (`volta.node`)
+- Tool versions come from the repository, not from the workflow: `pnpm/action-setup` reads `packageManager`, and `actions/setup-node` reads Node.js from `mise.toml` (`node-version-file: mise.toml`)
 - pnpm installs with a frozen lockfile automatically when it detects CI
 - Third-party actions are locked to exact commits — a workflow dependency lockfile (`gh actions-lock`) or full-length commit SHAs — and Dependabot keeps them current
 - Deployment secrets and approvals belong to GitHub environments, not to repository-wide secrets
@@ -360,7 +365,7 @@ Cross-cutting decisions about how the app is checked, built, and deployed. CI st
 **Decision:** Every cloud environment is created from code (post-MVP):
 
 - AWS → **Terraform**
-- Azure managed services (App Service, Container Apps, PostgreSQL, Blob Storage, Key Vault, …) → **Bicep**, deployed as a deployment stack
+- Azure managed services (Container Apps, PostgreSQL, Blob Storage, Key Vault, …) → **Bicep**, deployed as a deployment stack
 - AKS → **Terraform** (`azurerm` and `azapi` providers) creates the cluster; the workloads are Kubernetes manifests that the pipeline applies
 
 **Why:**
@@ -387,3 +392,38 @@ Cross-cutting decisions about how the app is checked, built, and deployed. CI st
 - AWS CloudFormation / CDK — AWS's own IaC, the counterpart of Bicep; a third tool to learn
 - Pulumi — IaC written in TypeScript, the project's language; less widespread than Terraform
 - OpenTofu — the open-source (MPL-2.0) fork of Terraform under the Linux Foundation, a drop-in replacement. Terraform's Business Source License doesn't restrict managing your own infrastructure, and switching later is cheap
+
+---
+
+## ADR-19: One image per app, one origin, routed by path
+
+**Decision:** The web app and the API each ship as one container image, built once and run unchanged in every environment. The browser talks to a single origin; the platform in front routes `/api/*` to the API and everything else to the web app:
+
+- AWS: ECS on Fargate for both containers, behind an Application Load Balancer with a path rule
+- Azure: Container Apps for both containers, with rule-based routing in the Container Apps environment
+- AKS: a Gateway API `HTTPRoute`
+- Locally: a development-only rewrite in `next.config.ts` sends `/api/*` to the API
+
+The API serves every route under the `/api` prefix (C2). The browser calls relative URLs (`/api/...`); server-side Next.js code reaches the API through `API_URL`, read at request time.
+
+**Why:**
+
+- `NEXT_PUBLIC_*` variables are baked in at build time: an API URL baked into the web image would tie it to one environment. With relative URLs, the image that was tested is the image that runs ("build once, deploy many")
+- One origin means first-party session cookies and no CORS; Better Auth's default base path, `/api/auth`, already fits the prefix
+- AWS Amplify Hosting supports Next.js only up to version 15, and it builds from source instead of running our image
+- AWS and Azure are compared on identical artifacts — only the infrastructure differs
+
+**Consequences:**
+
+- The web app runs as a container on AWS and Azure (ECS, Container Apps); Next.js builds with `output: 'standalone'` for a small image
+- The Application Load Balancer costs a fixed hourly fee, one more reason to destroy environments when they aren't used (ADR-18)
+- `BETTER_AUTH_URL` is the public origin of each environment (locally `http://localhost:3000`), set at runtime on the API. No extra trusted origins are needed; Google's redirect URI is `<origin>/api/auth/callback/google`
+- Behind a load balancer the client IP arrives in `X-Forwarded-For`, which load balancers append to: rate limiting must trust only the entries added by our own proxies (Better Auth `trustedProxies`)
+- Server-side code that reads `API_URL` must render dynamically (for example `await connection()`), or Next.js would freeze the value at build time
+
+**Alternatives considered:**
+
+- One web build per environment (`NEXT_PUBLIC_API_URL`) — a different artifact per cloud; what was tested isn't what runs
+- A separate API origin (`api.example.com`) — needs CORS with credentials and cross-subdomain cookie settings
+- Next.js forwarding every API call (rewrites or route handlers in production) — an extra hop and more code for every request
+- Amplify Hosting (AWS) and App Service (Azure) for the frontend — Amplify doesn't support Next.js 16; App Service would need Azure Front Door or Application Gateway in front to share one origin with the API

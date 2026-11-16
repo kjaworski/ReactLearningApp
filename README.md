@@ -19,16 +19,17 @@ Why each tool was chosen, the module structure, CI, infrastructure as code, and 
 
 ## Prerequisites
 
-- **Node.js 26** (LTS) — pinned to 26.13.1 with [Volta](https://volta.sh/), which switches to it automatically inside the repo
-- **pnpm 12** — pinned to 12.21.0 via `packageManager`; a globally installed pnpm switches to it automatically (on Windows, a global pnpm 11 must be ≥ 11.28.4 — see ADR-4 in [docs/architecture.md](docs/architecture.md))
+- **[mise](https://mise.jdx.dev/)** — installs the pinned Node.js 26.13.1 (`mise.toml`) and pnpm 12.21.0 (`packageManager` in `package.json`) and switches to them inside the repo. On Windows: `irm https://mise.run/powershell | iex`, then [activate it in PowerShell](https://mise.jdx.dev/shell-setup.html#powershell)
 - **Docker** — for PostgreSQL
 
 ## Getting Started
 
 ```bash
-# 1. Clone and install
+# 1. Clone, then install the toolchain and the dependencies
 git clone <repo-url>
 cd ReactLearningApp
+mise trust     # first time only: allow this repo's mise.toml
+mise install   # Node.js and pnpm in the pinned versions
 pnpm install
 
 # 2. Configure environment (one .env per app)
@@ -117,8 +118,8 @@ Shared types are consumed via `workspace:*` protocol — import from `@finance/s
 
 Each app has its own `.env` (gitignored) next to a committed `.env.example` template — there is no root `.env`:
 
-- **`apps/api/.env`** — `DATABASE_URL` (PostgreSQL connection string), `JWT_SECRET`, `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`
-- **`apps/web/.env`** — `NEXT_PUBLIC_API_URL` (frontend → backend URL)
+- **`apps/api/.env`** — `DATABASE_URL` (PostgreSQL connection string), `JWT_SECRET`, `JWT_EXPIRES_IN`
+- **`apps/web/.env`** — `API_URL` (where the Next.js server reaches the API; read at runtime, so one image works in every environment — the browser itself calls `/api` on the same origin)
 
 Sign-in provider settings (e.g. Google) are added together with the sign-in feature.
 

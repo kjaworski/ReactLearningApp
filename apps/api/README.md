@@ -4,8 +4,7 @@ The REST API backend for the Personal & Household Finance Manager, built with Ne
 
 ## Prerequisites
 
-- Node.js 26 (pinned via Volta in the root `package.json`)
-- pnpm 12 (pinned via `packageManager` in the root `package.json`)
+- Node.js 26 and pnpm 12 — installed by `mise install` (root `mise.toml` and `packageManager`)
 - Docker (for PostgreSQL 18)
 
 ## Setup
@@ -28,6 +27,8 @@ pnpm dev          # Start in watch mode (port 3001)
 pnpm build        # Production build
 pnpm test         # Run unit tests (Vitest)
 pnpm test:e2e     # Run E2E tests (Vitest + Supertest) — the scaffold test fails until C3 replaces it
+pnpm lint         # Check with ESLint (changes nothing — also what CI runs)
+pnpm lint:fix     # Fix what ESLint can fix
 ```
 
 ## Database

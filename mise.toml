@@ -1,0 +1,7 @@
+# Toolchain for this repository - install with `mise install` (docs/architecture.md ADR-4).
+[tools]
+node = "26.13.1"
+
+[settings]
+# The pnpm version comes from "packageManager" in package.json.
+idiomatic_version_file_enable_tools = ["pnpm"]
