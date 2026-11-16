@@ -100,79 +100,74 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 > Build UC-6 (Register & Login), UC-16 (Invite Member), household creation, default categories/account seeding. This is the auth foundation everything else depends on.
 
-**Progress** — Phase C is built in small learning steps (C1–C7):
+> **Approach** (architecture.md ADR-16): build a minimal login by hand first to learn how auth works, then switch to **Better Auth**. Each step installs only the packages it needs.
 
-- ~~**C1** — install the backend libraries (auth, validation, logging)~~ ✅
-- ~~**C2** — `PrismaModule` (global) + `PrismaService`~~ ✅
-- ~~**C3** — common infrastructure: `JwtStrategy`, `JwtAuthGuard`, `HouseholdGuard`, `@CurrentUser()`, `PrismaExceptionFilter`, `AuthenticatedRequest`~~ ✅
-- **C4** — wire up `main.ts` + `app.module.ts` — _in progress_
-  - ~~`ConfigModule` (global), global `ValidationPipe`, global `PrismaExceptionFilter`~~ ✅
-  - Pino logger (`nestjs-pino`)
-  - Swagger UI at `/api/docs` (bearer auth)
-  - CORS for the frontend (`http://localhost:3000`)
-  - Replace the scaffold e2e test (it still expects `GET /` → "Hello World!") with a smoke test
-- **C5** — register + login (`POST /auth/register`, `POST /auth/login`) — _next_
-- **C6** — household + user profile endpoints
-- **C7** — invitation flow (create, accept, revoke, resend, expiry cron job)
+**Progress** — Phase C is built in small learning steps:
 
-_Deferred:_ Google OAuth (`POST /auth/google`) and the NextAuth.js integration (step 3) move to the frontend work in Phase F; CQRS starts in Phase D.
+- **C1** — Configuration: `@nestjs/config` loads `apps/api/.env`; the app refuses to start when a required variable is missing — _next_
+- **C2** — Database access: `PrismaModule` + `PrismaService`; the first endpoint, `GET /health`, checks the database connection
+- **C3** — Logging and API docs: Pino logging, Swagger UI at `/api/docs`, CORS for `http://localhost:3000`; the scaffold e2e test (still expects `GET /` → "Hello World!") becomes a `GET /health` smoke test
+- **C4** — Register _(learning version)_: `POST /auth/register` — DTO validation, Argon2id password hash, duplicate email → 409
+- **C5** — Log in _(learning version)_: `POST /auth/login` returns a short-lived JWT
+- **C6** — Protected routes _(learning version)_: JWT strategy + guard, `@CurrentUser()`, `GET /users/me`
+- **C7** — Switch to Better Auth: replaces C4–C6; sessions in httpOnly cookies, users stay in our PostgreSQL
+- **C8** — Household on sign-up: household + default account + default categories in one transaction; `HouseholdGuard`
+- **C9** — Household and profile endpoints
+- **C10** — Invitations: create, accept, revoke, resend; a daily job expires old ones
+
+_Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phase F; CQRS starts in Phase D.
 
 **Steps:**
 
-1. **NestJS common infrastructure** — before any module:
-   - `PrismaModule` (global) — wraps PrismaClient, handles connection lifecycle
-   - `JwtAuthGuard` — validates JWT, extracts userId + householdId from token claims
-   - `@CurrentUser()` decorator — injects authenticated user into controller methods (like .NET's `User.Identity`)
-   - `HouseholdGuard` — ensures the requested householdId matches the user's household
-   - Global exception filter — maps Prisma errors (not found, unique constraint) to proper HTTP responses
-   - Global validation pipe — auto-validates DTOs via class-validator
-   - Swagger setup — `@nestjs/swagger` with bearer auth, API groups by module
-   - Pino logger setup
+1. **Foundation** (C1–C3):
+   - `ConfigModule` (global) — loads `apps/api/.env`, validates required variables at startup
+   - `PrismaModule` (global) — wraps the Prisma client, handles the connection lifecycle; `GET /health`
+   - Pino logger, Swagger UI (`@nestjs/swagger`, API groups by module), CORS
 
-2. **Identity module** — `modules/identity/`
-   - **Registration flow** (UC-6 steps 1-6):
-     - `POST /auth/register` — email + password. Hash password with bcrypt. Create User + Household + UserHousehold + default Account + default Categories
-     - `POST /auth/google` — Google OAuth callback. Create or find user, same household logic
-     - On household creation: seed 23 default categories + "Cash" account (per UC-6, HS-1)
-   - **Login flow** (UC-6 step 2-3):
-     - `POST /auth/login` — validate credentials, return JWT (access + refresh tokens)
-     - JWT payload: `{ sub: userId, householdId, email }` (`sub` = the standard JWT "subject" claim; `JwtStrategy` maps it to `request.user.userId`)
-   - **Invitation flow** (UC-16):
-     - `POST /households/:id/invitations` — create invitation, send email (mock email service for now)
-     - `POST /invitations/:token/accept` — accept invitation, create user if new, add to household
-     - `DELETE /invitations/:id` — revoke invitation
-     - `POST /invitations/:id/resend` — invalidate old token, create new one
-     - Cron job: expire invitations older than 7 days
+2. **Learning version of auth** (C4–C6) — built by hand to see how login works:
+   - `POST /auth/register` — email + password; validated DTO (global `ValidationPipe`); password hashed with Argon2id; an exception filter maps a duplicate email (Prisma unique constraint) to 409 Conflict
+   - `POST /auth/login` — checks the password, returns a short-lived JWT with payload `{ sub: userId, email }` (`sub` = the standard JWT "subject" claim)
+   - JWT strategy + `JwtAuthGuard` (like .NET's `[Authorize]`) and a `@CurrentUser()` decorator (like `User.Identity`); `GET /users/me` is the first protected route
+
+3. **Switch to Better Auth** (C7):
+   - Better Auth runs inside the API (NestJS integration) and keeps users and sessions in PostgreSQL through Prisma
+   - The session lives in an httpOnly cookie; the guard checks the session instead of a JWT
+   - The `User` model is adjusted to Better Auth's tables; the hand-built register/login code is removed
+
+4. **Identity module** (C8–C10) — `modules/identity/`
+   - **Household on sign-up** (UC-6 steps 4-6): create Household + UserHousehold + default "Cash" account + default categories in one transaction (HS-1); `HouseholdGuard` — the requested householdId must belong to the user
    - **Household endpoints**:
      - `GET /households/:id` — get household details + member list
      - `PATCH /households/:id` — update name, main currency
    - **User profile**:
      - `GET /users/me` — current user profile
      - `PATCH /users/me` — update display name
-
-3. **NextAuth.js integration** (frontend side of auth):
-   - Configure NextAuth.js in `apps/web` with credentials provider + Google provider
-   - NextAuth.js calls NestJS `/auth/login` and `/auth/google` endpoints
-   - Store JWT in session, pass to API calls via Authorization header
-   - Route protection in Next.js via `proxy.ts` (Next.js 16 renamed `middleware.ts` to `proxy.ts`)
+   - **Invitation flow** (UC-16):
+     - `POST /households/:id/invitations` — create invitation, send email (mock email service for now)
+     - `POST /invitations/:token/accept` — accept invitation, create user if new, add to household
+     - `DELETE /invitations/:id` — revoke invitation
+     - `POST /invitations/:id/resend` — invalidate old token, create new one
+     - Cron job: expire invitations older than 7 days
 
 **Verification:**
 
-- Register a user via Swagger → user + household + categories + account created in DB
-- Login → receive valid JWT → use it to call protected endpoints
+- The API refuses to start without `DATABASE_URL`; `GET /health` reports the database connection
+- Swagger UI opens at `/api/docs`
+- Learning version: register → log in → call `GET /users/me` with the JWT
+- After the switch: sign up → session cookie → `GET /users/me`
+- Sign-up creates the household, the "Cash" account, and the default categories
 - Invite flow: create invitation → accept → new user in household
 - `GET /households/:id` returns member list
 - Expired invitations are auto-cleaned
-- Invalid/expired JWT → 401
+- Not signed in → 401
 - Wrong householdId → 403
 
 **Relevant files:**
 
-- `apps/api/src/modules/identity/` — identity.module.ts, controllers/, services/, dto/
-- `apps/api/src/common/` — guards/, decorators/, filters/, interfaces/
 - `apps/api/src/prisma/` — prisma.module.ts, prisma.service.ts
-- `apps/web/src/app/api/auth/[...nextauth]/route.ts` — NextAuth.js config
-- `apps/web/src/proxy.ts` — route protection
+- `apps/api/src/common/` — guards/, decorators/, filters/
+- `apps/api/src/modules/identity/` — identity.module.ts, controllers/, services/, dto/
+- `apps/api/src/auth.ts` — Better Auth configuration (C7)
 
 ---
 
@@ -275,11 +270,11 @@ _Deferred:_ Google OAuth (`POST /auth/google`) and the NextAuth.js integration (
    - shadcn/ui: install base components (Button, Input, Select, Dialog, Sheet, Table, Card, DropdownMenu, Toast)
 
 2. **Auth pages** (_parallel with step 1_):
-   - `/login` — email + password form, Google OAuth button
+   - `/login` — email + password form, "Sign in with Google" button (Google provider configured in Better Auth)
    - `/register` — registration form with default categories selection UI (HS-1: show list, user can toggle off categories they don't want)
-   - NextAuth.js session provider wrapping the app
-   - TanStack Query provider setup with auth token injection
-   - Redirect logic: unauthenticated → /login, authenticated → /dashboard
+   - Better Auth client (`better-auth/react`) for sign-in, sign-out, and the current session
+   - TanStack Query provider setup; API calls include the session cookie (`credentials: 'include'`)
+   - Redirect logic in `src/proxy.ts`: unauthenticated → /login, authenticated → /dashboard
 
 3. **Dashboard page** (`/dashboard`) — UC-11:
    - Month selector (defaults to current month, any month selectable per HS-12)
@@ -318,7 +313,7 @@ _Deferred:_ Google OAuth (`POST /auth/google`) and the NextAuth.js integration (
    - Report type selector (Monthly Statement, Category Summary)
    - Period selector
    - Rendered report (table + charts)
-   - Export buttons: "Download PDF" and "Download CSV" (HS-15) — fetch the file from the export endpoint with the user's token and save it
+   - Export buttons: "Download PDF" and "Download CSV" (HS-15) — download from the export endpoints (the session cookie authenticates the request)
 
 9. **Settings page** (`/settings`) — UC-16, household management:
    - Household info (name, main currency)
@@ -346,6 +341,8 @@ _Deferred:_ Google OAuth (`POST /auth/google`) and the NextAuth.js integration (
 - `apps/web/src/app/(dashboard)/settings/page.tsx`
 - `apps/web/src/components/` — reusable components (TransactionForm, FilterBar, PieChart, etc.)
 - `apps/web/src/lib/api.ts` — TanStack Query hooks for API calls
+- `apps/web/src/lib/auth-client.ts` — Better Auth client
+- `apps/web/src/proxy.ts` — redirects to /login when there is no session
 
 ---
 
@@ -360,7 +357,7 @@ _Deferred:_ Google OAuth (`POST /auth/google`) and the NextAuth.js integration (
    - Category deletion rejection when transactions exist
    - Invitation expiry logic
    - Filter query builder (date range, cursor pagination)
-   - Auth guard (valid/invalid/expired JWT)
+   - Auth guard (no session / invalid / expired session)
 
 2. **Backend integration tests** (Vitest + Supertest + test database):
    - Full registration flow → categories + account created
@@ -383,7 +380,7 @@ _Deferred:_ Google OAuth (`POST /auth/google`) and the NextAuth.js integration (
    - HouseholdId scoping prevents cross-household data access
    - SQL injection prevented by Prisma parameterized queries
    - XSS prevented by React's default escaping
-   - CSRF handled by NextAuth.js
+   - CSRF: SameSite session cookies + Better Auth's trusted-origins check
 
 6. **Final polish**:
    - Loading states (skeleton screens) for all data-fetching pages
@@ -435,6 +432,7 @@ _Deferred:_ Google OAuth (`POST /auth/google`) and the NextAuth.js integration (
 **Key architectural decisions:**
 
 - Backend-first development (familiar for .NET dev, provides working APIs for frontend)
+- Auth: a hand-built learning version first, then Better Auth (architecture.md ADR-16)
 - CQRS infrastructure from day 1 even though MVP calculates on the fly (HS-14) — event handlers are no-ops but the pattern is established
 - Multi-household junction table from day 1 (HS-2) — no migration needed later
 - Validation: start with Zod in shared + class-validator in backend (decide on unification during implementation per tech-stack.md note)

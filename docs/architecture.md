@@ -284,3 +284,35 @@ const prisma = new PrismaClient({ adapter });
 - Prisma convention is PascalCase for model names
 - `@@map` keeps both worlds happy: `model UserHousehold` → table `user_households`
 - Column names remain camelCase (Prisma default, quoted in PostgreSQL) — consistent with TypeScript property naming
+
+---
+
+# Architecture Decisions — Phase C
+
+Technical decisions made while building the Identity & Access module (Phase C).
+
+---
+
+## ADR-16: Authentication — hand-built first, then Better Auth
+
+**Decision:** Build a minimal register/login by hand first (Passport, `@nestjs/jwt`, Argon2id) as a learning exercise, then replace it with **Better Auth** running inside the NestJS API. NextAuth.js (Auth.js) is not used.
+
+**Why:**
+
+- Authentication is a _generic subdomain_ (DDD): every app needs it, it isn't what makes this app special, and mistakes are expensive — so production code uses a proven solution, and custom code goes into the core domain (finance)
+- Building a small version first shows what an auth library does under the hood: password hashing, signed tokens, guards
+- Better Auth is what the former NextAuth.js team recommends for new TypeScript projects; Auth.js (now maintained by Better Auth) only receives security fixes
+- Better Auth keeps users and sessions in our own PostgreSQL (through Prisma): no external service, no per-user pricing
+- Passwords are hashed with **Argon2id**, OWASP's first choice (bcrypt is recommended only for legacy systems)
+
+**Consequences:**
+
+- Better Auth adds its own tables (user, session, account, verification); the `User` model is adjusted during the switch (C7)
+- The NestJS integration (`@thallesp/nestjs-better-auth`) is community-maintained; the Better Auth core is not
+- Sessions live in httpOnly cookies; the Next.js app uses the Better Auth client
+
+**Alternatives considered:**
+
+- Hand-built auth only — teaches the most, but every security-sensitive feature (Google sign-in, password reset, rate limiting) would be ours to get right
+- NextAuth.js (Auth.js) — in maintenance mode
+- Hosted identity providers (Auth0/Okta, Microsoft Entra ID, AWS Cognito, Clerk, self-hosted Keycloak) — the enterprise standard (the API validates their tokens with public keys from a JWKS endpoint), but an external dependency with per-user pricing beyond the free tiers

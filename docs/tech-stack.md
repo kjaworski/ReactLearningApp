@@ -21,12 +21,12 @@
 └─────────────────────────────────────────────────────────────────┘
 
 ┌───────────────┐         ┌──────────────────┐      ┌────────────┐
-│   Next.js     │  JWT    │    NestJS        │      │ PostgreSQL │
+│   Next.js     │ session │    NestJS        │      │ PostgreSQL │
 │   (Frontend)  │────────►│    (Backend API) │─────►│   (via     │
 │               │  HTTP   │                  │      │   Prisma)  │
-│  NextAuth.js  │         │  9 DDD modules   │      └────────────┘
+│  Better Auth  │         │  9 DDD modules   │      └────────────┘
 │  TanStack Q.  │         │  CQRS            │
-│  shadcn/ui    │         │  Passport/JWT    │
+│  shadcn/ui    │         │  Better Auth     │
 │  Tailwind CSS │         │  Guards          │
 └───────────────┘         └──────────────────┘
 ```
@@ -45,7 +45,7 @@
 | **UI Components**   | **shadcn/ui** (Radix UI primitives) | Copy-paste components (you own the code), accessible, Tailwind-based, dark mode built-in. Not an npm dependency — components live in your codebase. |
 | **Server state**    | **TanStack Query v5**               | Caching, auto-refetch, mutations, optimistic updates. The standard for calling external APIs from React.                                            |
 | **Client state**    | **Zustand** (if needed)             | Lightweight store for UI-only state (theme, open modals, active filters). Start without it — add only if React state/context isn't enough.          |
-| **Auth (frontend)** | **NextAuth.js (Auth.js) v5**        | Handles Google OAuth flow, session management, secure httpOnly cookies, CSRF protection. Industry standard for Next.js.                             |
+| **Auth (frontend)** | **Better Auth** (client)            | Sign-in forms call the Better Auth endpoints in the API; the session lives in an httpOnly cookie (no tokens in JavaScript).                         |
 | **Forms**           | **React Hook Form + Zod**           | Performant forms (no re-renders) + schema validation shared with backend                                                                            |
 | **Virtual scroll**  | **TanStack Virtual**                | Windowed rendering for the transaction list (HS-10 resolution)                                                                                      |
 | **Charts**          | **Recharts**                        | Charting built for React (pie charts for dashboard, line charts for savings graph)                                                                  |
@@ -53,18 +53,18 @@
 
 ### Backend — `apps/api/`
 
-| Category           | Choice                                                    | Why                                                                                                                                                                                                                                                                                                            |
-| ------------------ | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**      | **NestJS 12** (latest stable)                             | Modular architecture maps 1:1 to bounded contexts. Built-in DI, CQRS module, guards (like .NET `[Authorize]`), pipes (like .NET model validation). Feels like ASP.NET Core.                                                                                                                                    |
-| **Language**       | **TypeScript**                                            | Shared types with frontend                                                                                                                                                                                                                                                                                     |
-| **Database**       | **PostgreSQL 18**                                         | Relational integrity for financial data. JSONB for semi-structured data (OCR results, bank imports, promotion rules). Industry standard for fintech.                                                                                                                                                           |
-| **ORM**            | **Prisma 7**                                              | Type-safe auto-generated client, declarative schema, easy migrations, great DX. Most popular TypeScript ORM. V7 requires a driver adapter (`@prisma/adapter-pg`).                                                                                                                                              |
-| **Auth (backend)** | **Passport.js + JWT** (`@nestjs/passport`, `@nestjs/jwt`) | Issues JWTs on login (`/auth/login`) and validates them on every request; NextAuth.js stores the token and forwards it. `JwtAuthGuard` = equivalent of .NET `[Authorize]`.                                                                                                                                     |
-| **Validation**     | **class-validator + class-transformer**                   | Decorator-based DTO validation (like .NET `[Required]`, `[MaxLength]`). NestJS pipes auto-validate.                                                                                                                                                                                                            |
-| **CQRS**           | **@nestjs/cqrs**                                          | Separate command/query handlers per bounded context. Events bus for cross-context communication. **Note:** the event bus is in-memory — works for a single instance. For multi-instance deployment (ECS Fargate with multiple tasks), add an external event bus (e.g., Redis pub/sub or Amazon SNS/SQS) later. |
-| **API style**      | **REST**                                                  | Standard for job market. OpenAPI/Swagger via `@nestjs/swagger` for auto-generated docs.                                                                                                                                                                                                                        |
-| **Report export**  | **pdfmake** (PDF) + **csv-stringify** (CSV)               | Reports are generated on the server and streamed as file downloads: one source of truth for the numbers, household scoping enforced by the API, works for long date ranges, and reusable later for e-mailed reports. pdfmake builds paginated tables without a headless browser.                               |
-| **Logging**        | **Pino** (via `nestjs-pino`)                              | Structured JSON logging, fast, production-ready                                                                                                                                                                                                                                                                |
+| Category           | Choice                                                | Why                                                                                                                                                                                                                                                                                                            |
+| ------------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**      | **NestJS 12** (latest stable)                         | Modular architecture maps 1:1 to bounded contexts. Built-in DI, CQRS module, guards (like .NET `[Authorize]`), pipes (like .NET model validation). Feels like ASP.NET Core.                                                                                                                                    |
+| **Language**       | **TypeScript**                                        | Shared types with frontend                                                                                                                                                                                                                                                                                     |
+| **Database**       | **PostgreSQL 18**                                     | Relational integrity for financial data. JSONB for semi-structured data (OCR results, bank imports, promotion rules). Industry standard for fintech.                                                                                                                                                           |
+| **ORM**            | **Prisma 7**                                          | Type-safe auto-generated client, declarative schema, easy migrations, great DX. Most popular TypeScript ORM. V7 requires a driver adapter (`@prisma/adapter-pg`).                                                                                                                                              |
+| **Auth (backend)** | **Better Auth** (after a hand-built learning version) | Phase C first builds register/login by hand (Passport, `@nestjs/jwt`, Argon2id) to learn how auth works, then switches to Better Auth: sessions in httpOnly cookies, Google sign-in, rate limiting, users in our PostgreSQL via Prisma (architecture.md ADR-16).                                               |
+| **Validation**     | **class-validator + class-transformer**               | Decorator-based DTO validation (like .NET `[Required]`, `[MaxLength]`). NestJS pipes auto-validate.                                                                                                                                                                                                            |
+| **CQRS**           | **@nestjs/cqrs**                                      | Separate command/query handlers per bounded context. Events bus for cross-context communication. **Note:** the event bus is in-memory — works for a single instance. For multi-instance deployment (ECS Fargate with multiple tasks), add an external event bus (e.g., Redis pub/sub or Amazon SNS/SQS) later. |
+| **API style**      | **REST**                                              | Standard for job market. OpenAPI/Swagger via `@nestjs/swagger` for auto-generated docs.                                                                                                                                                                                                                        |
+| **Report export**  | **pdfmake** (PDF) + **csv-stringify** (CSV)           | Reports are generated on the server and streamed as file downloads: one source of truth for the numbers, household scoping enforced by the API, works for long date ranges, and reusable later for e-mailed reports. pdfmake builds paginated tables without a headless browser.                               |
+| **Logging**        | **Pino** (via `nestjs-pino`)                          | Structured JSON logging, fast, production-ready                                                                                                                                                                                                                                                                |
 
 ### Shared — `packages/shared/`
 
@@ -163,7 +163,8 @@ Modules added in later phases:
 | ----------------------------------- | ------------------------------------------------- |
 | `[ApiController]`                   | `@Controller()`                                   |
 | `[HttpGet]`, `[HttpPost]`           | `@Get()`, `@Post()`                               |
-| `[Authorize]`                       | `@UseGuards(JwtAuthGuard)`                        |
+| `[Authorize]`                       | Auth guard (`@UseGuards(...)`)                    |
+| `[AllowAnonymous]`                  | `@AllowAnonymous()` (Better Auth integration)     |
 | `[FromBody]`                        | `@Body()`                                         |
 | `[FromQuery]`                       | `@Query()`                                        |
 | `[FromRoute]`                       | `@Param()`                                        |
@@ -192,7 +193,7 @@ Modules added in later phases:
 
 ```
 next, react, react-dom
-@auth/core, next-auth          ← Auth
+better-auth                    ← Auth client (better-auth/react)
 @tanstack/react-query          ← Server state
 tailwindcss, @tailwindcss/postcss ← Styling (PostCSS plugin for Next.js; @tailwindcss/vite is for Vite-only projects)
 zod, react-hook-form, @hookform/resolvers ← Forms
@@ -205,7 +206,8 @@ recharts                       ← Charts
 ```
 @nestjs/core, @nestjs/platform-express
 @nestjs/cqrs                   ← CQRS
-@nestjs/passport, @nestjs/jwt, passport-jwt, bcrypt ← Auth (JWT guards, password hashing)
+better-auth, @thallesp/nestjs-better-auth ← Auth (sessions, Google sign-in)
+@nestjs/passport, @nestjs/jwt, passport-jwt, @node-rs/argon2 ← Hand-built learning version of auth (removed after the switch)
 @nestjs/swagger                ← API docs
 @nestjs/config                 ← Environment config
 @nestjs/schedule               ← Cron jobs
