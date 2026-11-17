@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then frontend. Start with monorepo scaffolding → Prisma schema → NestJS modules (identity → transaction → reporting) → Next.js frontend → polish. Each phase is independently verifiable. From Phase C on, a GitHub Actions workflow checks every push. Each phase also has a learning focus on architecture and security; AI comes with the Phase 3–4 features (Learning focus, below).
+Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then frontend. Start with monorepo scaffolding → Prisma schema → NestJS modules (identity → transaction → reporting) → Next.js frontend → polish. Each phase is independently verifiable. A GitHub Actions workflow will check every push; it isn't set up yet — CI-1 is the next step. Each phase also has a learning focus on architecture and security; AI comes with the Phase 3–4 features (Learning focus, below).
 
 ---
 
@@ -94,6 +94,18 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - Default category names stored in English; i18n/translation support deferred to a future phase
 - `mainCurrency` has no default — user selects currency during household registration
 
+**Follow-up — data integrity (B6–B8)** — _planned; any time before C8, the first step that writes these tables_
+
+> A review found rules that today only application code would enforce. The database enforces them as well, so a bug in one service can't break them.
+
+- **B6** — References stay inside one household: `Account`, `Category`, and `Transaction` get `@@unique([householdId, id])`; a transaction references its account and its category through composite foreign keys (`[householdId, accountId]`, `[householdId, categoryId]`); `TransactionSplit` gets `householdId` and composite foreign keys to its transaction and its category. A transaction can then never point to another household's account or category
+- **B7** — Value rules: `CHECK ("amount" > 0)` on transactions and splits — Prisma can't express CHECK constraints, so they're added by hand to a migration created with `prisma migrate dev --create-only`; at most one default account per household — a partial unique index, `@@unique([householdId], where: { isDefault: true })` (preview feature `partialIndexes`)
+- **B8** — Seed: one database transaction (a failed run leaves nothing behind), skipped when the dev user already exists, refused when `NODE_ENV` is `production`
+
+Left to the application on purpose (Phase D): that `Transaction.userId` is a member of the household — a foreign key to `user_households` would block removing a member who has transactions; that the category's type matches the transaction's type; that splits add up to the total. Before B6, draft ADR-21: how household isolation is enforced — application checks only, composite foreign keys, or PostgreSQL row-level security.
+
+**Verification:** `pnpm exec prisma validate`; read the generated SQL before it's applied; in psql, a transaction with another household's account, `amount = 0`, and a second default account are all rejected; `pnpm exec prisma db seed` succeeds twice in a row
+
 ---
 
 ## Continuous Integration: GitHub Actions — _alongside all phases_
@@ -104,7 +116,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 - **CI-1** — First workflow, `.github/workflows/ci.yml`: on every push to `main` and every pull request, install dependencies, then run `pnpm format:check`, `pnpm lint`, `pnpm build`, `pnpm test` — _next_
 - **CI-2** — Keep the repository and the workflow safe: turn on GitHub's free security features for public repositories (Dependabot alerts and security updates, CodeQL code scanning with the default setup, secret scanning with push protection); Dependabot version updates for GitHub Actions; actions locked to exact commits (`gh actions-lock`, or full-length SHAs); optionally a ruleset on `main` that requires the CI check (changes then go through pull requests)
-- **CI-3** — With C3: the e2e smoke test against a PostgreSQL 18 service container, after `prisma migrate deploy`
+- **CI-3** — With C3: the e2e smoke test against a PostgreSQL 18 service container, after `prisma migrate deploy`. The job calls the API package directly (`pnpm --filter @finance/api test:e2e`): through Turborepo, `DATABASE_URL` would be filtered out unless `turbo.json` declares it (strict environment mode). Locally, e2e tests that write data (from C4 on) use a separate test database, never the development one
 - **CI-4** — With the Docker step (post-MVP): build the API and web images
 - **CD** — With each cloud (post-MVP): deploy workflows that sign in with OIDC; infrastructure previews (`terraform plan`, Bicep `what-if`) on pull requests, applied on `main` after approval in a GitHub environment
 
@@ -115,7 +127,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - Warnings don't fail ESLint: `apps/api` sets `no-floating-promises` and `no-unsafe-argument` to `warn`, so CI would list them and stay green. To fail on them, raise them to `error` or add `--max-warnings 0` to `lint`
 - Feedback: a failed check on the commit or pull request, the log of the failing step, and a GitHub notification (Settings → Notifications → Actions — can be limited to failed runs). `actions/setup-node` also registers problem matchers that turn ESLint and TypeScript errors into annotations on the file and line
 - A `concurrency` group cancels a run when a newer commit arrives on the same branch
-- Versions come from the repository, not from the workflow: `pnpm/action-setup` reads `packageManager`; `actions/setup-node` with `node-version-file: mise.toml` reads the Node.js pin. `cache: pnpm` caches the pnpm store
+- Versions come from the repository, not from the workflow: `pnpm/action-setup` reads `packageManager`; `actions/setup-node` with `node-version-file: mise.toml` reads the Node.js pin — v7.1.0 or later, the first version that understands `mise.toml`. `cache: pnpm` caches the pnpm store
 - In CI, `pnpm install` refuses to change the lockfile (frozen lockfile is automatic)
 - From C2 on, the API imports the generated Prisma client, which is gitignored: CI then has to run `prisma generate` before lint, build, and test — for example as a Turborepo task they depend on
 - Later, when builds get slow: cache Turborepo's `.turbo` folder with `actions/cache`
@@ -168,7 +180,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - **C7** — Switch to Better Auth: replaces C4–C6; sessions in httpOnly cookies, users stay in our PostgreSQL; `BETTER_AUTH_URL` is the public origin (locally `http://localhost:3000`)
 - **C8** — Household on sign-up: household + default account + default categories in one transaction; `HouseholdGuard`
 - **C9** — Household and profile endpoints
-- **C10** — Invitations: create, accept, revoke, resend; a daily job expires old ones
+- **C10** — Invitations: create, accept, revoke, resend; a daily job expires old ones. The token is a bearer credential, so only its hash is stored (`token` becomes `tokenHash`): 32 random bytes from `crypto.randomBytes`, carried by the e-mail link after `#` (`/invite#<token>`) — browsers don't send that part to servers, so it stays out of access logs. SHA-256 is enough for random tokens; slow hashes like Argon2 exist for guessable passwords. Accepting hashes the incoming token and, in one conditional update, requires `PENDING` and an unexpired `expiresAt` — a token works once, and never after it expires, even before the daily job runs. Unknown, used, expired, and revoked tokens all get the same error
 
 _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phase F; CQRS starts in Phase D.
 
@@ -200,7 +212,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
      - `PATCH /users/me` — update display name
    - **Invitation flow** (UC-16):
      - `POST /households/:id/invitations` — create invitation, send email (mock email service for now)
-     - `POST /invitations/:token/accept` — accept invitation, create user if new, add to household
+     - `POST /invitations/accept` — the token travels in the request body (a URL path would put it in request logs); accept invitation, create user if new, add to household
      - `DELETE /invitations/:id` — revoke invitation
      - `POST /invitations/:id/resend` — invalidate old token, create new one
      - Cron job: expire invitations older than 7 days
@@ -214,6 +226,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 - After the switch: sign up → session cookie → `GET /users/me`
 - Sign-up creates the household, the "Cash" account, and the default categories
 - Invite flow: create invitation → accept → new user in household
+- A token works once; used, expired, revoked, and unknown tokens get the same error; the `invitations` table holds only hashes
 - `GET /households/:id` returns member list
 - Expired invitations are auto-cleaned
 - Not signed in → 401
@@ -254,6 +267,12 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
    - `DELETE /transactions/:id` — delete transaction
    - `POST /transactions/:id/split` — split into categories. Validate: sum of splits == total (invariant). `SplitTransactionCommand` → `TransactionSplitEvent`
    - `POST /transactions/:id/unsplit` — remove all splits, assign to single category (HS-8). `UnsplitTransactionCommand` → `TransactionUnsplitEvent`
+   - Rules the aggregate checks on every change — the database also enforces the first one (B6) and positive amounts (B7):
+     - the account and the category belong to the household
+     - amounts are positive, with at most 2 decimal places; they travel as strings in JSON and are calculated with `Prisma.Decimal`, never as JavaScript numbers, so nothing gets rounded
+     - the category's type matches the transaction's type, for splits too
+     - `userId` is a member of the household
+     - a change that breaks the split invariant is rejected — for example a new amount without new splits
 
 4. **Transaction query endpoints** (UC-4):
    - `GET /households/:id/transactions` — filtered list with cursor-based pagination. Filters: dateFrom, dateTo (default: current month per HS-9), userId, categoryId, accountId, amountMin, amountMax, type. Returns paginated results
@@ -272,6 +291,8 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 - Summary endpoint returns correct income/expense/net totals
 - Cursor pagination works (next page token)
 - All endpoints require auth + correct householdId
+- An account, category, or member from another household → the same error as an unknown id; the database rejects such a row too (B6)
+- Amount 0, negative, or with 3 decimal places → 400; an income category on an expense → 400
 
 **Relevant files:**
 

@@ -27,21 +27,21 @@ pnpm dev          # Start in watch mode (port 3001)
 pnpm build        # Production build
 pnpm test         # Run unit tests (Vitest)
 pnpm test:e2e     # Run E2E tests (Vitest + Supertest) — the scaffold test fails until C3 replaces it
-pnpm lint         # Check with ESLint (changes nothing — also what CI runs)
+pnpm lint         # Check with ESLint (changes nothing — CI will run the same)
 pnpm lint:fix     # Fix what ESLint can fix
 ```
 
 ## Database
 
-| Command                                      | Description                             |
-| -------------------------------------------- | --------------------------------------- |
-| `pnpm exec prisma migrate dev --name <name>` | Create a new migration                  |
-| `pnpm exec prisma migrate dev`               | Apply pending migrations                |
-| `pnpm exec prisma migrate deploy`            | Apply migrations only (fresh DB, CI)    |
-| `pnpm exec prisma generate`                  | Regenerate Prisma client                |
-| `pnpm exec prisma db seed`                   | Run seed script                         |
-| `pnpm exec prisma studio`                    | Open database browser (GUI)             |
-| `pnpm exec prisma migrate reset`             | Reset database (drop + recreate + seed) |
+| Command                                      | Description                                                                      |
+| -------------------------------------------- | -------------------------------------------------------------------------------- |
+| `pnpm exec prisma migrate dev --name <name>` | Create a new migration                                                           |
+| `pnpm exec prisma migrate dev`               | Apply pending migrations                                                         |
+| `pnpm exec prisma migrate deploy`            | Apply migrations only (fresh DB, CI)                                             |
+| `pnpm exec prisma generate`                  | Regenerate Prisma client                                                         |
+| `pnpm exec prisma db seed`                   | Run seed script                                                                  |
+| `pnpm exec prisma studio`                    | Open database browser (GUI)                                                      |
+| `pnpm exec prisma migrate reset`             | Reset database (drop + recreate; Prisma 7 no longer seeds — run `db seed` after) |
 
 ## Project Structure
 

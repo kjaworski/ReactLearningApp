@@ -130,7 +130,7 @@
 - **Flow:**
   1. System connects to bank API
   2. System downloads new transactions since last import
-  3. System marks them as "uncategorized"
+  3. System saves them without a category ("uncategorized")
   4. On next login, user sees a prompt: "You have X new transactions to categorize"
   5. User assigns categories to each
 - **Outcome:** Imported transactions are stored and categorized
@@ -486,6 +486,8 @@ End of month (or on-demand)
 **Key Rule (Invariant):**
 
 > The sum of all `TransactionSplit` amounts must equal the `Transaction` total amount.
+
+**Uncategorized transactions:** an imported transaction has no category until the user picks one — its `categoryId` is empty (null). An "Uncategorized" category was rejected: it would be a fake category that has to be protected from renaming and deletion and hidden from pickers and budgets. The MVP has no import and every transaction it creates has a category, so `categoryId` stays required until bank import (Phase 3).
 
 #### Bounded Context: Identity & Access
 

@@ -447,7 +447,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 
 🟪 Policy: "When TransactionsImported → CreateUncategorizedTransactions"
   → 🟦 CreateUncategorizedTransaction (×N)
-    → 🟩 Transaction (status = uncategorized)
+    → 🟩 Transaction (no category yet)
       → 🟧 UncategorizedTransactionCreated (×N)
 
 --- later, on user login (see Flow 2) ---

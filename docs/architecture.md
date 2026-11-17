@@ -259,7 +259,7 @@ const prisma = new PrismaClient({ adapter });
 
 - The seed lives outside `src/`, so it isn't part of the Nest build — `tsx` runs the TypeScript file directly (ESM imports included, ADR-10) without a compile step
 - The seed command is configured in `prisma.config.ts` under `migrations.seed`
-- The seed is idempotent: it skips when categories already exist
+- It skips when categories already exist. That isn't safe after a failure yet: a run that stops halfway leaves the dev user behind, and the next run fails on its unique email — B8 makes the seed one transaction
 
 **Seed execution:** `pnpm exec prisma db seed` → runs `tsx prisma/seed.ts`
 
@@ -346,7 +346,7 @@ Cross-cutting decisions about how the app is checked, built, and deployed. CI st
 
 - CI only verifies: it runs check-only commands (`prettier --check`, ESLint without `--fix`) and reports the result; fixing happens locally (editor, pre-commit hook). It never commits — its read-only token couldn't push anyway
 - The `GITHUB_TOKEN` gets `permissions: contents: read` by default; only deploy jobs add `id-token: write`, which OIDC needs
-- Tool versions come from the repository, not from the workflow: `pnpm/action-setup` reads `packageManager`, and `actions/setup-node` reads Node.js from `mise.toml` (`node-version-file: mise.toml`)
+- Tool versions come from the repository, not from the workflow: `pnpm/action-setup` reads `packageManager`, and `actions/setup-node` reads Node.js from `mise.toml` (`node-version-file: mise.toml`, supported since setup-node v7.1.0)
 - pnpm installs with a frozen lockfile automatically when it detects CI
 - Third-party actions are locked to exact commits — a workflow dependency lockfile (`gh actions-lock`) or full-length commit SHAs — and Dependabot keeps them current
 - Deployment secrets and approvals belong to GitHub environments, not to repository-wide secrets
@@ -378,7 +378,7 @@ Cross-cutting decisions about how the app is checked, built, and deployed. CI st
 
 **Consequences:**
 
-- Terraform keeps a state file that can contain secrets in plain text, so state lives only in a private remote backend: an S3 bucket (versioning, encryption, `use_lockfile` locking) for AWS, Azure Blob Storage (Microsoft Entra ID sign-in, blob lease locking) for AKS. Both are created once by hand, before the first `terraform init`
+- Terraform keeps a state file that can contain secrets in plain text, so state lives only in a private remote backend — S3 for AWS, Azure Blob Storage for AKS (settings in tech-stack.md, Infrastructure as code) — created once by hand, before the first `terraform init`
 - Bicep has no state to protect; the template stays the source of truth — changes made in the portal can be overwritten by the next deployment
 - The cluster and its workloads are separate: Terraform's Kubernetes provider warns against creating a cluster and its Kubernetes resources in the same configuration
 - `azapi`, a thin layer over the Azure REST API like Bicep, covers AKS features that `azurerm` doesn't support yet
@@ -417,8 +417,12 @@ The API serves every route under the `/api` prefix (C2). The browser calls relat
 
 - The web app runs as a container on AWS and Azure (ECS, Container Apps); Next.js builds with `output: 'standalone'` for a small image
 - The Application Load Balancer costs a fixed hourly fee, one more reason to destroy environments when they aren't used (ADR-18)
-- `BETTER_AUTH_URL` is the public origin of each environment (locally `http://localhost:3000`), set at runtime on the API. No extra trusted origins are needed; Google's redirect URI is `<origin>/api/auth/callback/google`
-- Behind a load balancer the client IP arrives in `X-Forwarded-For`, which load balancers append to: rate limiting must trust only the entries added by our own proxies (Better Auth `trustedProxies`)
+- `BETTER_AUTH_URL` is the public origin of each environment (locally `http://localhost:3000`), set at runtime on the API. Because it's fixed, Better Auth never builds URLs from forwarded `Host` or protocol headers (`advanced.trustedProxyHeaders` stays off). No extra trusted origins are needed; Google's redirect URI is `<origin>/api/auth/callback/google`
+- Session cookies stay host-only (no `Domain` attribute; `crossSubDomainCookies` stays off) and `httpOnly`; Better Auth makes them `Secure` in production (`NODE_ENV=production` in the API image)
+- Only the router is public: on AWS, security groups let the containers accept traffic only from the load balancer; on Azure, both apps use internal ingress and only the environment's route configuration is public. A route can expose any app in its environment and needs only a permission on the environment (`httpRouteConfigs/write`, part of Contributor), so only the deployment identity gets that role
+- The Azure route for `/api` comes before the catch-all and has no `prefixRewrite` — the API expects the prefix
+- Behind a load balancer the client IP arrives in `X-Forwarded-For`, which load balancers append to: rate limiting must trust only the entries added by our own proxies (Better Auth `trustedProxies`) — safe only because nobody can reach the containers around the router. With more than one API container, rate-limit counters move from memory to the database (`rateLimit.storage`)
+- Health checks: the ALB target group (ECS also replaces tasks that fail it) and the Container Apps liveness probe use a path that doesn't query the database, so a database outage doesn't restart every API container; `GET /api/health`, which checks the database, is the readiness check — the same split as on Kubernetes
 - Server-side code that reads `API_URL` must render dynamically (for example `await connection()`), or Next.js would freeze the value at build time
 
 **Alternatives considered:**
