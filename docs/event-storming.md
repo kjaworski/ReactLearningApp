@@ -45,18 +45,17 @@
     → 🟩 User
       → 🟧 UserRegistered
 
-🟪 Policy: "When UserRegistered AND no invitation → CreateHousehold"
-  → 🟦 CreateHousehold
+🟪 Policy: "When UserRegistered AND no invitation → OfferHouseholdSetup"
+  → 📖 Household Setup (name, main currency; default categories: keep all / customize / start empty)
+
+🟨 New User
+  → 🟦 CreateHousehold (name, main currency, chosen categories)
     → 🟩 Household
       → 🟧 HouseholdCreated
 
-🟪 Policy: "When UserRegistered AND has invitation → JoinHousehold"
-  → 🟦 JoinHousehold
-    → 🟩 Household
-      → 🟧 MemberJoinedHousehold
+(Signed up through an invitation: no household is created — the person joins only through AcceptInvitation, Flow 3)
 
-🟪 Policy: "When HouseholdCreated → OfferDefaultCategories"
-  → 📖 Default Category Selection (user chooses: keep all / customize / start empty)
+🟪 Policy: "When HouseholdCreated → SeedDefaultCategories"
   → 🟦 SeedDefaultCategories (18 expense + 5 income, minus any user removed)
     → 🟩 Category (×N)
       → 🟧 CategoryCreated (×N)
@@ -70,8 +69,8 @@
 **📖 Read Models produced:**
 
 - User Profile
+- Household Setup (name, main currency, default category selection)
 - Household Members List
-- Default Category Selection UI
 
 **🔴 Hot Spots (resolved):**
 
@@ -681,11 +680,13 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 🟨 New User
 ├─► 🟦 RegisterUser ──► 🟩 User ──► 🟧 UserRegistered
 │                                      │
-│                          ┌───────────┴───────────┐
-│                          ▼                       ▼
-│                   🟦 CreateHousehold       🟦 JoinHousehold
-│                    ▼                       ▼
-│              🟧 HouseholdCreated    🟧 MemberJoinedHousehold
+│                                      ▼  not invited (invited: AcceptInvitation, below)
+│                          📖 Household Setup
+│                                      │
+│                                      ▼
+│                   🟦 CreateHousehold
+│                    ▼
+│              🟧 HouseholdCreated
 │                    │
 │                    ▼
 │              🟪 SeedDefaultCategories
@@ -703,9 +704,9 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 │                                                  ⬜ Email Service
 │
 └─► 🟦 AcceptInvitation ──► 🟩 Invitation ──► 🟧 InvitationAccepted
-                                                     │
-                                                     ▼
-                                              � MemberJoinedHousehold (same transaction)
+    (verified e-mail = invitee's e-mail)             +
+                                              🟧 MemberJoinedHousehold
+                                              (one transaction; on failure the invitation stays pending)
 
 🟨 Returning User
 └─► 🟦 AuthenticateUser ──► 🟩 User ──► 🟧 UserLoggedIn

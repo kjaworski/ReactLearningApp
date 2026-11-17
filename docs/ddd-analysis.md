@@ -180,12 +180,12 @@
   1. Registration: email + password OR Google OAuth
   2. Login: credentials or Google
   3. System issues a session/token
-  4. If first user → system creates a new Household and adds this member
+  4. Not invited → household setup: the user names the household and picks its main currency; the system creates it and adds this member
   5. System auto-creates a default account ("Cash", in main currency)
-  6. System offers **default categories** (18 expense + 5 income, English names) — user can keep all, customize (modify/delete some), or start empty
-  7. If invited → system adds the user to the existing Household
+  6. Household setup also offers the **default categories** (18 expense + 5 income, English names) — user can keep all, customize (modify/delete some), or start empty
+  7. Invited → no household is created; the user verifies their e-mail and accepts the invitation (UC-16), which adds them to the existing Household
 - **Outcome:** Authenticated user with full access to their household
-- **Command:** `RegisterUser`, `AuthenticateUser`, `SeedDefaultCategories`, `CreateDefaultAccount`
+- **Command:** `RegisterUser`, `AuthenticateUser`, `CreateHousehold`, `SeedDefaultCategories`, `CreateDefaultAccount`
 
 ### UC-7: View Reports
 
@@ -305,7 +305,7 @@
   1. User enters the invitee's email address
   2. System creates a single-use invitation token (expires in 7 days)
   3. System sends an invitation email
-  4. Invitee clicks the link → registers (if new) or joins the household (if existing user)
+  4. Invitee clicks the link → signs up if new (no household of their own) or signs in → accepts with a verified e-mail that matches the invitation; the invitation is used up and the invitee joins the household together, or neither happens
   5. Inviter can resend (generates new token, invalidates old) or revoke at any time
 - **Outcome:** New member joins the household with equal access
 - **Command:** `InviteMember`, `AcceptInvitation`, `RevokeInvitation`
@@ -497,7 +497,7 @@ End of month (or on-demand)
 | ------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **User**            | Aggregate Root (Entity) | A person using the app. Has ID, email, auth method, display name. Every user is a full and equal member of their Household — there are no restricted roles.                                                                                                                                                                                           |
 | **Household**       | Aggregate Root (Entity) | A group of users sharing finances equally. Has ID, name, main currency, list of member references. All members have identical permissions. **Data model uses a junction table `user_households` to support multi-household in the future**, but MVP launches with single-household UX (no switcher). All APIs are scoped with explicit `householdId`. |
-| **Invitation**      | Entity                  | A pending invite for someone to join a Household. Has ID, inviter reference, invitee email, status (pending/accepted/expired/revoked), **expiry: 7 days**. Single-use token. Inviter can resend (new token, old invalidated) or revoke. Any member can invite others.                                                                                 |
+| **Invitation**      | Entity                  | A pending invite for someone to join a Household. Has ID, inviter reference, invitee email, status (pending/accepted/expired/revoked), **expiry: 7 days**. Single-use token. Inviter can resend (new token, old invalidated) or revoke. Any member can invite others. Accepting needs the invitee's verified e-mail and joins in one transaction.     |
 | **AuthCredentials** | Value Object            | Password hash or Google OAuth token. Never stored as plain text.                                                                                                                                                                                                                                                                                      |
 
 #### Bounded Context: Budgeting
@@ -572,7 +572,7 @@ End of month (or on-demand)
 | `HouseholdCreated`                     | Identity & Access                    | Transaction Mgmt                         | Set up shared space, create default account and categories                  |
 | `MemberJoinedHousehold`                | Identity & Access                    | —                                        | Update household member list                                                |
 | `InvitationSent`                       | Identity & Access                    | External (Email)                         | Deliver invitation email to invitee                                         |
-| `InvitationAccepted`                   | Identity & Access                    | Identity & Access                        | Join household (a new invitee signed up first)                              |
+| `InvitationAccepted`                   | Identity & Access                    | Identity & Access                        | Membership created in the same transaction                                  |
 | `UserLoggedIn`                         | Identity & Access                    | Transaction Mgmt                         | Check for uncategorized transactions → show prompt                          |
 | **Transaction Management**             |                                      |                                          |                                                                             |
 | `TransactionRecorded`                  | Transaction Management               | Budgeting, Reporting, Promotion Tracking | Recalculate budget usage; update reports; check promotion conditions        |

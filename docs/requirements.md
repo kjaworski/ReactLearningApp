@@ -127,8 +127,9 @@ See how my savings are going month by month.
 ## 21. Household Members
 
 1. Everyone in a household shares the same data and has the same permissions
-2. Invite a new member by email; the invitation expires after 7 days and works only once
+2. Invite a new member by email; the invitation expires after 7 days, works only once, and can be accepted only with the invited e-mail address, once it's verified
 3. Resend or revoke a pending invitation
+4. Someone who signs up without an invitation sets up a new household; someone invited joins the existing one instead
 
 ## 22. Accounts
 

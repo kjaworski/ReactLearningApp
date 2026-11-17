@@ -51,7 +51,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 1. ~~**Identity & Access models** — `User`, `Household`, `UserHousehold` (junction table for multi-household readiness per HS-2), `Invitation`~~ ✅
    - User: id, email, displayName, passwordHash (nullable — Google users won't have one), googleId (nullable), createdAt
-   - Household: id, name, mainCurrency (no default — user must choose during registration), createdAt
+   - Household: id, name, mainCurrency (no default — the user chooses it during household setup), createdAt
    - UserHousehold: userId, householdId, joinedAt (composite PK)
    - Invitation: id, householdId, inviterUserId, inviteeEmail, token (unique), status (PENDING/ACCEPTED/EXPIRED/REVOKED), expiresAt, createdAt
 
@@ -92,7 +92,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 - TransactionType as enum (HS-5)
 - Category has `type` field (EXPENSE/INCOME) to separate the two lists
 - Default category names stored in English; i18n/translation support deferred to a future phase
-- `mainCurrency` has no default — user selects currency during household registration
+- `mainCurrency` has no default — the user selects it during household setup
 
 **Follow-up — data integrity (B6–B8)** — _planned; any time before C8, the first step that writes these tables_
 
@@ -178,7 +178,7 @@ Left to the application on purpose (Phase D): that `Transaction.userId` is a mem
 - **C5** — Log in _(learning version)_: `POST /auth/login` returns a short-lived JWT
 - **C6** — Protected routes _(learning version)_: JWT strategy + guard, `@CurrentUser()`, `GET /users/me`
 - **C7** — Switch to Better Auth: replaces C4–C6; sessions in httpOnly cookies, users stay in our PostgreSQL; `BETTER_AUTH_URL` is the public origin (locally `http://localhost:3000`). It starts with a schema compatibility checkpoint (Steps, 3)
-- **C8** — Household on sign-up: an ordinary sign-up continues with household setup — the user names the household and picks its main currency; household + membership + default account + default categories in one transaction; `HouseholdGuard`. Signing up through an invitation creates no household (C10)
+- **C8** — Household on sign-up: an ordinary sign-up continues with household setup — the user names the household and picks its main currency and default categories; household + membership + default account + those categories in one transaction; `HouseholdGuard`. Signing up through an invitation creates no household (C10)
 - **C9** — Household and profile endpoints
 - **C10** — Invitations: create, accept, revoke, resend; a daily job expires old ones. The token is a bearer credential, so only its hash is stored (`token` becomes `tokenHash`): 32 random bytes from `crypto.randomBytes`, carried by the e-mail link after `#` (`/invite#<token>`) — browsers don't send that part to servers, so it stays out of access logs. The invite page reads the token and removes it from the address bar at once (`history.replaceState`), so it doesn't stay in the browser history or in a copied or bookmarked address. SHA-256 is enough for random tokens; slow hashes like Argon2 exist for guessable passwords. Accepting hashes the incoming token and, in one conditional update, requires `PENDING` and an unexpired `expiresAt` — a token works once, and never after it expires, even before the daily job runs. Unknown, used, expired, and revoked tokens all get the same error. Accepting needs the invitee's verified e-mail and is one database transaction (Steps, 4)
 
@@ -209,7 +209,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
    - The hand-built register/login code is removed
 
 4. **Identity module** (C8–C10) — `modules/identity/`
-   - **Household on sign-up** (UC-6 steps 4-6): after an ordinary sign-up, `POST /households` — name and main currency, household data that Better Auth's sign-up doesn't collect — creates Household + UserHousehold + default "Cash" account + default categories in one transaction (HS-1); refused when the user already has a household (single-household UX, HS-2). An invited user gets no household of their own and accepts the invitation instead (C10). `HouseholdGuard` — the requested householdId must belong to the user
+   - **Household on sign-up** (UC-6 steps 4-6): after an ordinary sign-up, `POST /households` — name, main currency, and the chosen default categories (HS-1): household data that Better Auth's sign-up doesn't collect — creates Household + UserHousehold + default "Cash" account + those categories in one transaction; refused when the user already has a household (single-household UX, HS-2). An invited user gets no household of their own and accepts the invitation instead (C10). `HouseholdGuard` — the requested householdId must belong to the user
    - **Household endpoints**:
      - `GET /households/:id` — get household details + member list
      - `PATCH /households/:id` — update name, main currency
@@ -360,10 +360,12 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 
 2. **Auth pages** (_parallel with step 1_):
    - `/login` — email + password form, "Sign in with Google" button (Google provider configured in Better Auth)
-   - `/register` — registration form with default categories selection UI (HS-1: show list, user can toggle off categories they don't want)
+   - `/register` — sign-up form, followed by `/setup`
+   - `/setup` — household setup (C8): name, main currency, and default categories selection (HS-1: show list, user can toggle off categories they don't want)
+   - `/invite` — reads the token from the URL fragment and clears it (C10); a new invitee signs up here — no household setup — and verifies the e-mail, an existing user signs in; then the page accepts the invitation
    - Better Auth client (`better-auth/react`) for sign-in, sign-out, and the current session
    - TanStack Query provider setup; API calls go to `/api` on the same origin, so the browser sends the session cookie by itself (architecture.md ADR-19)
-   - Redirect logic in `src/proxy.ts`: unauthenticated → /login, authenticated → /dashboard
+   - Redirect logic in `src/proxy.ts`: unauthenticated → /login (except `/register` and `/invite`), authenticated → /dashboard
 
 3. **Dashboard page** (`/dashboard`) — UC-11:
    - Month selector (defaults to current month, any month selectable per HS-12)
@@ -412,15 +414,15 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 
 **Verification:**
 
-- Complete user journey: register → see dashboard → add transactions → view filtered list → split a transaction → view reports → export PDF
+- Complete user journey: register → household setup → see dashboard → add transactions → view filtered list → split a transaction → view reports → export PDF
 - Mobile viewport: all pages are usable on 375px width
 - Dark mode: toggle works, all pages render correctly
 - Auth: unauthenticated access redirects to login
-- Invite flow: invite → accept (in another browser/incognito) → new user sees shared data
+- Invite flow: invite → in another browser, the invitee signs up on `/invite` (no household setup), verifies the e-mail, and accepts → sees the shared data
 
 **Relevant files:**
 
-- `apps/web/src/app/(auth)/login/page.tsx`, `register/page.tsx`
+- `apps/web/src/app/(auth)/login/page.tsx`, `register/page.tsx`, `invite/page.tsx`, `setup/page.tsx`
 - `apps/web/src/app/(dashboard)/layout.tsx` — authenticated layout with sidebar
 - `apps/web/src/app/(dashboard)/dashboard/page.tsx`
 - `apps/web/src/app/(dashboard)/transactions/page.tsx`
@@ -449,14 +451,14 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
    - Auth guard (no session / invalid / expired session)
 
 2. **Backend integration tests** (Vitest + Supertest + test database):
-   - Full registration flow → categories + account created
+   - Registration: sign-up → household setup → household, categories, and account created; signing up through an invitation creates no household
    - Transaction CRUD → verify database state
-   - Invitation accept flow → user joins household
+   - Invitation acceptance: the invitee's verified e-mail → member of the household; a different or unverified e-mail is refused; a forced failure leaves the invitation `PENDING`
 
 3. **E2E tests** (Playwright):
-   - Register → login → add transaction → view in list → view on dashboard
+   - Register → household setup → add transaction → view in list → view on dashboard
    - Split transaction → verify totals
-   - Invite member → accept → both users see shared data
+   - Invite member → the invitee signs up, verifies the e-mail, and accepts → both users see shared data
    - Mobile viewport test (375px)
    - Dark mode toggle
 
@@ -527,4 +529,4 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 - Multi-household junction table from day 1 (HS-2) — no migration needed later
 - Validation: start with Zod in shared + class-validator in backend (decide on unification during implementation per tech-stack.md note)
 - Default category names in English — i18n/translation deferred to post-MVP. When implemented, consider storing a translation key on Category and resolving display names at the UI layer based on user locale
-- No default value for `mainCurrency` on Household — user explicitly selects currency during registration to support multiple countries
+- No default value for `mainCurrency` on Household — user explicitly selects currency during household setup to support multiple countries
