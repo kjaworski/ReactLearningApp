@@ -487,6 +487,8 @@ End of month (or on-demand)
 
 > The sum of all `TransactionSplit` amounts must equal the `Transaction` total amount.
 
+**Money precision:** how many decimal places an amount may have depends on its currency (ISO 4217 minor units: JPY 0, PLN 2, BHD 3). The MVP offers only two-decimal currencies; multi-currency (Phase 2) takes the precision from each currency instead of assuming 2.
+
 **Uncategorized transactions:** an imported transaction has no category until the user picks one — its `categoryId` is empty (null). An "Uncategorized" category was rejected: it would be a fake category that has to be protected from renaming and deletion and hidden from pickers and budgets. The MVP has no import and every transaction it creates has a category, so `categoryId` stays required until bank import (Phase 3).
 
 #### Bounded Context: Identity & Access

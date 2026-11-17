@@ -100,11 +100,11 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 - **B6** — References stay inside one household: `Account`, `Category`, and `Transaction` get `@@unique([householdId, id])`; a transaction references its account and its category through composite foreign keys (`[householdId, accountId]`, `[householdId, categoryId]`); `TransactionSplit` gets `householdId` and composite foreign keys to its transaction and its category. A transaction can then never point to another household's account or category
 - **B7** — Value rules: `CHECK ("amount" > 0)` on transactions and splits — Prisma can't express CHECK constraints, so they're added by hand to a migration created with `prisma migrate dev --create-only`; at most one default account per household — a partial unique index, `@@unique([householdId], where: { isDefault: true })` (preview feature `partialIndexes`)
-- **B8** — Seed: one database transaction (a failed run leaves nothing behind), skipped when the dev user already exists, refused when `NODE_ENV` is `production`
+- **B8** — Seed: idempotent — it can run any number of times and also completes the data of an earlier run that stopped halfway: fixed ids (or natural keys such as the e-mail) and upserts, all in one database transaction. Fail-closed: it runs only with an explicit opt-in (for example `SEED_DEV_DATA=true` in the local `apps/api/.env`) and refuses without it — a check for `NODE_ENV=production` would let through any environment that doesn't set `NODE_ENV`
 
 Left to the application on purpose (Phase D): that `Transaction.userId` is a member of the household — a foreign key to `user_households` would block removing a member who has transactions; that the category's type matches the transaction's type; that splits add up to the total. Before B6, draft ADR-21: how household isolation is enforced — application checks only, composite foreign keys, or PostgreSQL row-level security.
 
-**Verification:** `pnpm exec prisma validate`; read the generated SQL before it's applied; in psql, a transaction with another household's account, `amount = 0`, and a second default account are all rejected; `pnpm exec prisma db seed` succeeds twice in a row
+**Verification:** `pnpm exec prisma validate`; read the generated SQL before it's applied; in psql, a transaction with another household's account, `amount = 0`, and a second default account are all rejected; `pnpm exec prisma db seed` succeeds twice in a row, restores dev rows deleted in between (for example a few categories), and refuses to run without the opt-in
 
 ---
 
@@ -116,7 +116,7 @@ Left to the application on purpose (Phase D): that `Transaction.userId` is a mem
 
 - **CI-1** — First workflow, `.github/workflows/ci.yml`: on every push to `main` and every pull request, install dependencies, then run `pnpm format:check`, `pnpm lint`, `pnpm build`, `pnpm test` — _next_
 - **CI-2** — Keep the repository and the workflow safe: turn on GitHub's free security features for public repositories (Dependabot alerts and security updates, CodeQL code scanning with the default setup, secret scanning with push protection); Dependabot version updates for GitHub Actions; actions locked to exact commits (`gh actions-lock`, or full-length SHAs); optionally a ruleset on `main` that requires the CI check (changes then go through pull requests)
-- **CI-3** — With C3: the e2e smoke test against a PostgreSQL 18 service container, after `prisma migrate deploy`. The job calls the API package directly (`pnpm --filter @finance/api test:e2e`): through Turborepo, `DATABASE_URL` would be filtered out unless `turbo.json` declares it (strict environment mode). Locally, e2e tests that write data (from C4 on) use a separate test database, never the development one
+- **CI-3** — With C3: the e2e smoke test against a PostgreSQL 18 service container, after `prisma migrate deploy`. The job runs the API package's script directly (`pnpm --filter @finance/api test:e2e`) — Turborepo isn't involved, so the job's `DATABASE_URL` reaches the tests as is. If the task later runs through `turbo run`, `turbo.json` has to declare `DATABASE_URL` (Turborepo's strict mode passes a task only the variables it declares). Locally, e2e tests that write data (from C4 on) use a separate test database, never the development one
 - **CI-4** — With the Docker step (post-MVP): build the API and web images
 - **CD** — With each cloud (post-MVP): deploy workflows that sign in with OIDC; infrastructure previews (`terraform plan`, Bicep `what-if`) on pull requests, applied on `main` after approval in a GitHub environment
 
@@ -173,14 +173,14 @@ Left to the application on purpose (Phase D): that `Transaction.userId` is a mem
 - **C1** — Configuration: `@nestjs/config` loads `apps/api/.env`; the app refuses to start when a required variable is missing — _after CI-1_
 - **C2** — Database access: `PrismaModule` + `PrismaService`; the first endpoint, `GET /api/health`, checks the database connection. Every route gets the `/api` prefix (`app.setGlobalPrefix('api')`), so each environment can route by path (architecture.md ADR-19); the endpoint paths below leave it out
 - **C3** — Logging, API docs, and HTTP hardening: Pino logging, Swagger UI at `/api/docs`, security headers (Helmet); the scaffold e2e test (still expects `GET /` → "Hello World!") becomes a `GET /api/health` smoke test
-- **C3a** — Vertical checkpoint: the Next.js home page shows the result of `GET /api/health` twice — fetched on the server through `API_URL` (read at request time) and in the browser through `/api` (a development-only rewrite in `next.config.ts`). The first end-to-end path: browser → Next.js → NestJS → PostgreSQL
+- **C3a** — Vertical checkpoint: the Next.js home page shows the result of `GET /api/health` twice — fetched on the server through `API_URL` and in the browser through `/api` (a development-only rewrite in `next.config.ts`). The page renders at request time — `await connection()` (from `next/server`) before it reads `API_URL`; without it, `next build` prerenders the page, reading `API_URL` and calling the API during the build, and one image could no longer serve every environment (ADR-19). The first end-to-end path: browser → Next.js → NestJS → PostgreSQL
 - **C4** — Register _(learning version)_: `POST /auth/register` — DTO validation, Argon2id password hash, duplicate email → 409
 - **C5** — Log in _(learning version)_: `POST /auth/login` returns a short-lived JWT
 - **C6** — Protected routes _(learning version)_: JWT strategy + guard, `@CurrentUser()`, `GET /users/me`
-- **C7** — Switch to Better Auth: replaces C4–C6; sessions in httpOnly cookies, users stay in our PostgreSQL; `BETTER_AUTH_URL` is the public origin (locally `http://localhost:3000`)
+- **C7** — Switch to Better Auth: replaces C4–C6; sessions in httpOnly cookies, users stay in our PostgreSQL; `BETTER_AUTH_URL` is the public origin (locally `http://localhost:3000`). It starts with a schema compatibility checkpoint (Steps, 3)
 - **C8** — Household on sign-up: household + default account + default categories in one transaction; `HouseholdGuard`
 - **C9** — Household and profile endpoints
-- **C10** — Invitations: create, accept, revoke, resend; a daily job expires old ones. The token is a bearer credential, so only its hash is stored (`token` becomes `tokenHash`): 32 random bytes from `crypto.randomBytes`, carried by the e-mail link after `#` (`/invite#<token>`) — browsers don't send that part to servers, so it stays out of access logs. SHA-256 is enough for random tokens; slow hashes like Argon2 exist for guessable passwords. Accepting hashes the incoming token and, in one conditional update, requires `PENDING` and an unexpired `expiresAt` — a token works once, and never after it expires, even before the daily job runs. Unknown, used, expired, and revoked tokens all get the same error
+- **C10** — Invitations: create, accept, revoke, resend; a daily job expires old ones. The token is a bearer credential, so only its hash is stored (`token` becomes `tokenHash`): 32 random bytes from `crypto.randomBytes`, carried by the e-mail link after `#` (`/invite#<token>`) — browsers don't send that part to servers, so it stays out of access logs. The invite page reads the token and removes it from the address bar at once (`history.replaceState`), so it doesn't stay in the browser history or in a copied or bookmarked address. SHA-256 is enough for random tokens; slow hashes like Argon2 exist for guessable passwords. Accepting hashes the incoming token and, in one conditional update, requires `PENDING` and an unexpired `expiresAt` — a token works once, and never after it expires, even before the daily job runs. Unknown, used, expired, and revoked tokens all get the same error. Accepting is atomic — one database transaction: the conditional update consumes the token and marks the invitation `ACCEPTED`, a new invitee's user is created, and the membership is added; if any part fails, nothing is saved and the link still works. Better Auth (C7) creates users in its own transaction: if that can't join ours, a new invitee signs up first — without a household of their own (C8) — and the transaction covers the token and the membership
 
 _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phase F; CQRS starts in Phase D.
 
@@ -200,7 +200,13 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 3. **Switch to Better Auth** (C7):
    - Better Auth runs inside the API (NestJS integration) and keeps users and sessions in PostgreSQL through Prisma
    - The session lives in an httpOnly cookie; the guard checks the session instead of a JWT
-   - The `User` model is adjusted to Better Auth's tables; the hand-built register/login code is removed
+   - **Schema compatibility checkpoint** — settled before Better Auth's CLI writes to `schema.prisma`:
+     - Better Auth's `account` model (one row per sign-in method) would collide with our financial `Account`, so it gets another name — for example `AuthAccount` (`account.modelName`, table `auth_accounts`); its `session` and `verification` models are new
+     - `User` is extended, not replaced: Better Auth's `name` maps to `displayName` (`user.fields`); `emailVerified`, `image`, and `updatedAt` are added; `passwordHash` moves to a `credential` row in `AuthAccount` (the hash in `password`, the user's id in `accountId`); `googleId` is dropped — Google sign-in comes in Phase F, so it's still empty
+     - Better Auth hashes passwords with scrypt by default; its `emailAndPassword.password` option keeps Argon2id (ADR-16), so the moved hashes still verify
+     - User ids don't change: the migration alters `users` in place — never drop and recreate — so `user_households`, `transactions`, and `invitations` keep their references
+     - The migration is created with `prisma migrate dev --create-only`; the data move (`INSERT ... SELECT` from `users` into `auth_accounts`) is written by hand and read before it's applied. The seed (B8) follows the new schema
+   - The hand-built register/login code is removed
 
 4. **Identity module** (C8–C10) — `modules/identity/`
    - **Household on sign-up** (UC-6 steps 4-6): create Household + UserHousehold + default "Cash" account + default categories in one transaction (HS-1); `HouseholdGuard` — the requested householdId must belong to the user
@@ -212,7 +218,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
      - `PATCH /users/me` — update display name
    - **Invitation flow** (UC-16):
      - `POST /households/:id/invitations` — create invitation, send email (mock email service for now)
-     - `POST /invitations/accept` — the token travels in the request body (a URL path would put it in request logs); accept invitation, create user if new, add to household
+     - `POST /invitations/accept` — the token travels in the request body (a URL path would put it in request logs); one transaction consumes the token, creates the user if new, and adds them to the household
      - `DELETE /invitations/:id` — revoke invitation
      - `POST /invitations/:id/resend` — invalidate old token, create new one
      - Cron job: expire invitations older than 7 days
@@ -221,12 +227,13 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 
 - The API refuses to start without `DATABASE_URL`; `GET /api/health` reports the database connection
 - Swagger UI opens at `/api/docs`
-- Checkpoint: the web home page shows the API status, fetched on the server and in the browser
+- Checkpoint: the web home page shows the API status, fetched on the server and in the browser; `pnpm build` marks it `ƒ (Dynamic)`, not `○ (Static)`
 - Learning version: register → log in → call `GET /users/me` with the JWT
-- After the switch: sign up → session cookie → `GET /users/me`
+- After the switch: sign up → session cookie → `GET /users/me`; a user registered in C4 signs in with the same password and keeps the same id
 - Sign-up creates the household, the "Cash" account, and the default categories
 - Invite flow: create invitation → accept → new user in household
 - A token works once; used, expired, revoked, and unknown tokens get the same error; the `invitations` table holds only hashes
+- The invite page leaves no token in the address bar; an acceptance that fails partway saves nothing, and the invitation stays `PENDING`
 - `GET /households/:id` returns member list
 - Expired invitations are auto-cleaned
 - Not signed in → 401
@@ -269,7 +276,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
    - `POST /transactions/:id/unsplit` — remove all splits, assign to single category (HS-8). `UnsplitTransactionCommand` → `TransactionUnsplitEvent`
    - Rules the aggregate checks on every change — the database also enforces the first one (B6) and positive amounts (B7):
      - the account and the category belong to the household
-     - amounts are positive, with at most 2 decimal places; they travel as strings in JSON and are calculated with `Prisma.Decimal`, never as JavaScript numbers, so nothing gets rounded
+     - amounts are positive, with no more decimal places than their currency allows — 2 in the MVP, which offers only two-decimal currencies (ddd-analysis.md, Money); they travel as strings in JSON and are calculated with `Prisma.Decimal`, never as JavaScript numbers, so nothing gets rounded
      - the category's type matches the transaction's type, for splits too
      - `userId` is a member of the household
      - a change that breaks the split invariant is rejected — for example a new amount without new splits
@@ -292,7 +299,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 - Cursor pagination works (next page token)
 - All endpoints require auth + correct householdId
 - An account, category, or member from another household → the same error as an unknown id; the database rejects such a row too (B6)
-- Amount 0, negative, or with 3 decimal places → 400; an income category on an expense → 400
+- Amount 0, negative, or with more decimal places than its currency allows (3 for PLN) → 400; an income category on an expense → 400
 
 **Relevant files:**
 
