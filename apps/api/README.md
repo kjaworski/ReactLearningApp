@@ -13,7 +13,7 @@ The REST API backend for the Personal & Household Finance Manager, built with Ne
 # From repository root
 docker compose up -d          # Start PostgreSQL
 cd apps/api
-cp .env.example .env          # Then set JWT_SECRET
+cp .env.example .env          # Then set JWT_SECRET and SEED_DEV_DATA="true"
 pnpm install                  # Install dependencies (usually done from root)
 pnpm exec prisma generate     # Generate Prisma client
 pnpm exec prisma migrate dev  # Apply migrations
@@ -47,7 +47,7 @@ pnpm lint:fix     # Fix what ESLint can fix
 
 ```
 apps/api/
-├── .env.example              # Settings template (DATABASE_URL, JWT_*) — copy to .env
+├── .env.example              # Settings template (DATABASE_URL, JWT_*, SEED_DEV_DATA) — copy to .env
 ├── prisma/
 │   ├── schema.prisma         # Database schema (8 models, 3 enums)
 │   ├── seed.ts               # Dev seed data (user, household, account, 23 categories)

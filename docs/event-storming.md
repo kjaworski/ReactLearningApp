@@ -106,13 +106,11 @@
       → 🟧 InvitationSent
         → ⬜ Email / Notification Service
 
-🟨 Invited Person
-  → 🟦 AcceptInvitation
-    → 🟩 Invitation
+🟨 Invited Person (if new: signs up first — Flow 1, without a household of their own)
+  → 🟦 AcceptInvitation (verified e-mail must match the invitation)
+    → 🟩 Invitation + Household membership (one transaction)
       → 🟧 InvitationAccepted
-
-🟪 Policy: "When InvitationAccepted → RegisterUser (if new) + JoinHousehold"
-  → (continues into Flow 1)
+      → 🟧 MemberJoinedHousehold
 ```
 
 **🔴 Hot Spots (resolved):**
@@ -707,7 +705,7 @@ Refresh: real-time after each save. Aggregates calculated on the fly for MVP.
 └─► 🟦 AcceptInvitation ──► 🟩 Invitation ──► 🟧 InvitationAccepted
                                                      │
                                                      ▼
-                                              🟪 RegisterUser + JoinHousehold
+                                              � MemberJoinedHousehold (same transaction)
 
 🟨 Returning User
 └─► 🟦 AuthenticateUser ──► 🟩 User ──► 🟧 UserLoggedIn

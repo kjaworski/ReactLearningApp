@@ -100,11 +100,11 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 
 - **B6** — References stay inside one household: `Account`, `Category`, and `Transaction` get `@@unique([householdId, id])`; a transaction references its account and its category through composite foreign keys (`[householdId, accountId]`, `[householdId, categoryId]`); `TransactionSplit` gets `householdId` and composite foreign keys to its transaction and its category. A transaction can then never point to another household's account or category
 - **B7** — Value rules: `CHECK ("amount" > 0)` on transactions and splits — Prisma can't express CHECK constraints, so they're added by hand to a migration created with `prisma migrate dev --create-only`; at most one default account per household — a partial unique index, `@@unique([householdId], where: { isDefault: true })` (preview feature `partialIndexes`)
-- **B8** — Seed: idempotent — it can run any number of times and also completes the data of an earlier run that stopped halfway: fixed ids (or natural keys such as the e-mail) and upserts, all in one database transaction. Fail-closed: it runs only with an explicit opt-in (for example `SEED_DEV_DATA=true` in the local `apps/api/.env`) and refuses without it — a check for `NODE_ENV=production` would let through any environment that doesn't set `NODE_ENV`
+- **B8** — Seed: idempotent and non-destructive — stable ids and upserts that only create (`update: {}`), all in one database transaction. Every run restores missing dev records, including after a run that stopped halfway, and leaves edited ones as they are. Fail-closed: it runs only when `SEED_DEV_DATA` is exactly `true` (`.env.example` ships `false`, so local development opts in explicitly) and always refuses when `NODE_ENV` is `production`. A database seeded by the old script is reset once (`prisma migrate reset`): its rows have random ids, and the new seed would collide with the old dev user's e-mail
 
 Left to the application on purpose (Phase D): that `Transaction.userId` is a member of the household — a foreign key to `user_households` would block removing a member who has transactions; that the category's type matches the transaction's type; that splits add up to the total. Before B6, draft ADR-21: how household isolation is enforced — application checks only, composite foreign keys, or PostgreSQL row-level security.
 
-**Verification:** `pnpm exec prisma validate`; read the generated SQL before it's applied; in psql, a transaction with another household's account, `amount = 0`, and a second default account are all rejected; `pnpm exec prisma db seed` succeeds twice in a row, restores dev rows deleted in between (for example a few categories), and refuses to run without the opt-in
+**Verification:** `pnpm exec prisma validate`; read the generated SQL before it's applied; in psql, a transaction with another household's account, `amount = 0`, and a second default account are all rejected; `pnpm exec prisma db seed` succeeds twice in a row, restores deleted dev rows (for example a few categories) but keeps edited ones (a renamed category keeps its name), and refuses when `SEED_DEV_DATA` isn't exactly `true` or `NODE_ENV` is `production`
 
 ---
 
@@ -178,9 +178,9 @@ Left to the application on purpose (Phase D): that `Transaction.userId` is a mem
 - **C5** — Log in _(learning version)_: `POST /auth/login` returns a short-lived JWT
 - **C6** — Protected routes _(learning version)_: JWT strategy + guard, `@CurrentUser()`, `GET /users/me`
 - **C7** — Switch to Better Auth: replaces C4–C6; sessions in httpOnly cookies, users stay in our PostgreSQL; `BETTER_AUTH_URL` is the public origin (locally `http://localhost:3000`). It starts with a schema compatibility checkpoint (Steps, 3)
-- **C8** — Household on sign-up: household + default account + default categories in one transaction; `HouseholdGuard`
+- **C8** — Household on sign-up: an ordinary sign-up continues with household setup — the user names the household and picks its main currency; household + membership + default account + default categories in one transaction; `HouseholdGuard`. Signing up through an invitation creates no household (C10)
 - **C9** — Household and profile endpoints
-- **C10** — Invitations: create, accept, revoke, resend; a daily job expires old ones. The token is a bearer credential, so only its hash is stored (`token` becomes `tokenHash`): 32 random bytes from `crypto.randomBytes`, carried by the e-mail link after `#` (`/invite#<token>`) — browsers don't send that part to servers, so it stays out of access logs. The invite page reads the token and removes it from the address bar at once (`history.replaceState`), so it doesn't stay in the browser history or in a copied or bookmarked address. SHA-256 is enough for random tokens; slow hashes like Argon2 exist for guessable passwords. Accepting hashes the incoming token and, in one conditional update, requires `PENDING` and an unexpired `expiresAt` — a token works once, and never after it expires, even before the daily job runs. Unknown, used, expired, and revoked tokens all get the same error. Accepting is atomic — one database transaction: the conditional update consumes the token and marks the invitation `ACCEPTED`, a new invitee's user is created, and the membership is added; if any part fails, nothing is saved and the link still works. Better Auth (C7) creates users in its own transaction: if that can't join ours, a new invitee signs up first — without a household of their own (C8) — and the transaction covers the token and the membership
+- **C10** — Invitations: create, accept, revoke, resend; a daily job expires old ones. The token is a bearer credential, so only its hash is stored (`token` becomes `tokenHash`): 32 random bytes from `crypto.randomBytes`, carried by the e-mail link after `#` (`/invite#<token>`) — browsers don't send that part to servers, so it stays out of access logs. The invite page reads the token and removes it from the address bar at once (`history.replaceState`), so it doesn't stay in the browser history or in a copied or bookmarked address. SHA-256 is enough for random tokens; slow hashes like Argon2 exist for guessable passwords. Accepting hashes the incoming token and, in one conditional update, requires `PENDING` and an unexpired `expiresAt` — a token works once, and never after it expires, even before the daily job runs. Unknown, used, expired, and revoked tokens all get the same error. Accepting needs the invitee's verified e-mail and is one database transaction (Steps, 4)
 
 _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phase F; CQRS starts in Phase D.
 
@@ -204,12 +204,12 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
      - Better Auth's `account` model (one row per sign-in method) would collide with our financial `Account`, so it gets another name — for example `AuthAccount` (`account.modelName`, table `auth_accounts`); its `session` and `verification` models are new
      - `User` is extended, not replaced: Better Auth's `name` maps to `displayName` (`user.fields`); `emailVerified`, `image`, and `updatedAt` are added; `passwordHash` moves to a `credential` row in `AuthAccount` (the hash in `password`, the user's id in `accountId`); `googleId` is dropped — Google sign-in comes in Phase F, so it's still empty
      - Better Auth hashes passwords with scrypt by default; its `emailAndPassword.password` option keeps Argon2id (ADR-16), so the moved hashes still verify
-     - User ids don't change: the migration alters `users` in place — never drop and recreate — so `user_households`, `transactions`, and `invitations` keep their references
+     - User ids don't change: the migration alters `users` in place — never drop and recreate — so `user_households`, `transactions`, and `invitations` keep their references. New rows get UUIDs like Prisma's `@default(uuid())`: `advanced.database.generateId: () => crypto.randomUUID()`. Not `"uuid"` — on PostgreSQL it makes Better Auth's CLI write native `uuid` columns filled by the database, and a `uuid` foreign key can't reference our `text` user ids
      - The migration is created with `prisma migrate dev --create-only`; the data move (`INSERT ... SELECT` from `users` into `auth_accounts`) is written by hand and read before it's applied. The seed (B8) follows the new schema
    - The hand-built register/login code is removed
 
 4. **Identity module** (C8–C10) — `modules/identity/`
-   - **Household on sign-up** (UC-6 steps 4-6): create Household + UserHousehold + default "Cash" account + default categories in one transaction (HS-1); `HouseholdGuard` — the requested householdId must belong to the user
+   - **Household on sign-up** (UC-6 steps 4-6): after an ordinary sign-up, `POST /households` — name and main currency, household data that Better Auth's sign-up doesn't collect — creates Household + UserHousehold + default "Cash" account + default categories in one transaction (HS-1); refused when the user already has a household (single-household UX, HS-2). An invited user gets no household of their own and accepts the invitation instead (C10). `HouseholdGuard` — the requested householdId must belong to the user
    - **Household endpoints**:
      - `GET /households/:id` — get household details + member list
      - `PATCH /households/:id` — update name, main currency
@@ -218,7 +218,10 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
      - `PATCH /users/me` — update display name
    - **Invitation flow** (UC-16):
      - `POST /households/:id/invitations` — create invitation, send email (mock email service for now)
-     - `POST /invitations/accept` — the token travels in the request body (a URL path would put it in request logs); one transaction consumes the token, creates the user if new, and adds them to the household
+     - `POST /invitations/accept` — the token travels in the request body (a URL path would put it in request logs):
+       - The caller is signed in, with a verified e-mail equal to `inviteeEmail` (compared in lowercase), so a forwarded link is useless to anyone else; Better Auth's e-mail verification is switched on for this, sending through the same mock service
+       - A new invitee signs up first — Better Auth creates the user in its own transaction, without a household (C8)
+       - One database transaction: the conditional update (`PENDING`, unexpired, matching e-mail — a different e-mail gets the same error as an unknown token) consumes the token and marks the invitation `ACCEPTED`, and the membership is added. If anything fails, both roll back: the invitation stays `PENDING`, and the same link works again
      - `DELETE /invitations/:id` — revoke invitation
      - `POST /invitations/:id/resend` — invalidate old token, create new one
      - Cron job: expire invitations older than 7 days
@@ -230,10 +233,10 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
 - Checkpoint: the web home page shows the API status, fetched on the server and in the browser; `pnpm build` marks it `ƒ (Dynamic)`, not `○ (Static)`
 - Learning version: register → log in → call `GET /users/me` with the JWT
 - After the switch: sign up → session cookie → `GET /users/me`; a user registered in C4 signs in with the same password and keeps the same id
-- Sign-up creates the household, the "Cash" account, and the default categories
-- Invite flow: create invitation → accept → new user in household
+- An ordinary sign-up with household setup creates the household, the "Cash" account, and the default categories; signing up through an invitation creates none
+- Invite flow: create invitation → the invitee signs up and verifies the e-mail → accepts → member of the household; an unverified or different e-mail is refused
 - A token works once; used, expired, revoked, and unknown tokens get the same error; the `invitations` table holds only hashes
-- The invite page leaves no token in the address bar; an acceptance that fails partway saves nothing, and the invitation stays `PENDING`
+- The invite page leaves no token in the address bar; an acceptance that fails partway saves nothing — the invitation stays `PENDING`, and the same link works again
 - `GET /households/:id` returns member list
 - Expired invitations are auto-cleaned
 - Not signed in → 401
@@ -276,7 +279,7 @@ _Later:_ Google sign-in (a Better Auth provider) comes with the frontend in Phas
    - `POST /transactions/:id/unsplit` — remove all splits, assign to single category (HS-8). `UnsplitTransactionCommand` → `TransactionUnsplitEvent`
    - Rules the aggregate checks on every change — the database also enforces the first one (B6) and positive amounts (B7):
      - the account and the category belong to the household
-     - amounts are positive, with no more decimal places than their currency allows — 2 in the MVP, which offers only two-decimal currencies (ddd-analysis.md, Money); they travel as strings in JSON and are calculated with `Prisma.Decimal`, never as JavaScript numbers, so nothing gets rounded
+     - amounts are positive, with no more decimal places than their currency allows — 2 in the MVP, which offers only two-decimal currencies (ddd-analysis.md, Money precision); they travel as strings in JSON and are calculated with `Prisma.Decimal`, never as JavaScript numbers, so nothing gets rounded
      - the category's type matches the transaction's type, for splits too
      - `userId` is a member of the household
      - a change that breaks the split invariant is rejected — for example a new amount without new splits

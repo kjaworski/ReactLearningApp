@@ -259,7 +259,7 @@ const prisma = new PrismaClient({ adapter });
 
 - The seed lives outside `src/`, so it isn't part of the Nest build — `tsx` runs the TypeScript file directly (ESM imports included, ADR-10) without a compile step
 - The seed command is configured in `prisma.config.ts` under `migrations.seed`
-- Today it skips when categories already exist, which can't repair a run that stopped halfway: the dev user is left behind, and the next run fails on its unique e-mail. B8 makes the seed idempotent (fixed ids and upserts in one transaction) and fail-closed (it runs only with an explicit opt-in)
+- Today it skips when categories already exist, which can't repair a run that stopped halfway: the dev user is left behind, and the next run fails on its unique e-mail. B8 makes the seed idempotent and non-destructive (stable ids, upserts that only create missing rows, one transaction) and fail-closed (it runs only when `SEED_DEV_DATA` is exactly `true`, never in production)
 
 **Seed execution:** `pnpm exec prisma db seed` → runs `tsx prisma/seed.ts`
 
@@ -276,7 +276,7 @@ const prisma = new PrismaClient({ adapter });
 - Supports amounts up to ~999,999,999,999,999.9999 (sufficient for household finance)
 - PostgreSQL's `numeric` type handles this natively with no precision loss
 - Prisma maps `Decimal` to JavaScript's `Decimal.js` instances
-- The column isn't the validation rule: four places hold every currency's minor units, but how many an amount may use depends on its currency (JPY 0, PLN 2, BHD 3). The MVP offers only two-decimal currencies; multi-currency (Phase 2) takes the precision from each currency instead of assuming 2
+- The column isn't the validation rule: four places hold every currency's minor units, but how many an amount may use comes from ISO 4217's minor units for its currency (JPY 0, PLN 2, BHD 3); `Intl.NumberFormat` only formats for display (ddd-analysis.md, Money precision). The MVP offers only two-decimal currencies; multi-currency (Phase 2) takes the precision from each currency instead of assuming 2
 
 ---
 
@@ -313,7 +313,7 @@ Technical decisions made while building the Identity & Access module (Phase C).
 
 **Consequences:**
 
-- Better Auth needs four tables — user, session, account, verification. `user` is our `users` table, extended in place so every id stays; `account` would collide with our financial `Account`, so it gets another name, such as `AuthAccount` (C7, schema compatibility checkpoint)
+- Better Auth needs four tables — user, session, account, verification. `user` is our `users` table, extended in place so every id stays, and new ids are UUIDs like the existing ones; `account` would collide with our financial `Account`, so it gets another name, such as `AuthAccount` (C7, schema compatibility checkpoint)
 - Better Auth hashes passwords with scrypt by default; Argon2id is kept through its `emailAndPassword.password` option
 - The NestJS integration (`@thallesp/nestjs-better-auth`) is community-maintained; the Better Auth core is not
 - Sessions live in httpOnly cookies; the Next.js app uses the Better Auth client

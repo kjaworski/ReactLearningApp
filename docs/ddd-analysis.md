@@ -487,7 +487,7 @@ End of month (or on-demand)
 
 > The sum of all `TransactionSplit` amounts must equal the `Transaction` total amount.
 
-**Money precision:** how many decimal places an amount may have depends on its currency (ISO 4217 minor units: JPY 0, PLN 2, BHD 3). The MVP offers only two-decimal currencies; multi-currency (Phase 2) takes the precision from each currency instead of assuming 2.
+**Money precision:** how many decimal places an amount may have depends on its currency. The source of truth is ISO 4217's minor units (JPY 0, PLN 2, BHD 3), kept as data in the code; `Intl.NumberFormat` only formats amounts for display — it follows CLDR, which differs for some currencies (IQD: 3 in ISO 4217, 0 in `Intl`). The MVP offers only two-decimal currencies; multi-currency (Phase 2) takes the precision from each currency instead of assuming 2.
 
 **Uncategorized transactions:** an imported transaction has no category until the user picks one — its `categoryId` is empty (null). An "Uncategorized" category was rejected: it would be a fake category that has to be protected from renaming and deletion and hidden from pickers and budgets. The MVP has no import and every transaction it creates has a category, so `categoryId` stays required until bank import (Phase 3).
 
@@ -568,11 +568,11 @@ End of month (or on-demand)
 | Event                                  | Produced by                          | Consumed by                              | What happens                                                                |
 | -------------------------------------- | ------------------------------------ | ---------------------------------------- | --------------------------------------------------------------------------- |
 | **Identity & Access**                  |                                      |                                          |                                                                             |
-| `UserRegistered`                       | Identity & Access                    | Transaction Mgmt                         | Initialize user profile, seed default categories + default account          |
+| `UserRegistered`                       | Identity & Access                    | Identity & Access                        | If not invited: the user sets up a household (`CreateHousehold`)            |
 | `HouseholdCreated`                     | Identity & Access                    | Transaction Mgmt                         | Set up shared space, create default account and categories                  |
 | `MemberJoinedHousehold`                | Identity & Access                    | —                                        | Update household member list                                                |
 | `InvitationSent`                       | Identity & Access                    | External (Email)                         | Deliver invitation email to invitee                                         |
-| `InvitationAccepted`                   | Identity & Access                    | Identity & Access                        | Trigger registration (if new) + join household                              |
+| `InvitationAccepted`                   | Identity & Access                    | Identity & Access                        | Join household (a new invitee signed up first)                              |
 | `UserLoggedIn`                         | Identity & Access                    | Transaction Mgmt                         | Check for uncategorized transactions → show prompt                          |
 | **Transaction Management**             |                                      |                                          |                                                                             |
 | `TransactionRecorded`                  | Transaction Management               | Budgeting, Reporting, Promotion Tracking | Recalculate budget usage; update reports; check promotion conditions        |

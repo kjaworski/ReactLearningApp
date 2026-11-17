@@ -35,7 +35,8 @@ pnpm install
 # 2. Configure environment (one .env per app)
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
-# Set JWT_SECRET in apps/api/.env (DATABASE_URL already matches docker-compose.yml)
+# In apps/api/.env: set JWT_SECRET, and SEED_DEV_DATA="true" to allow the dev seed
+# (DATABASE_URL already matches docker-compose.yml)
 
 # 3. Start PostgreSQL
 docker compose up -d
@@ -118,7 +119,7 @@ Shared types are consumed via `workspace:*` protocol — import from `@finance/s
 
 Each app has its own `.env` (gitignored) next to a committed `.env.example` template — there is no root `.env`:
 
-- **`apps/api/.env`** — `DATABASE_URL` (PostgreSQL connection string), `JWT_SECRET`, `JWT_EXPIRES_IN`
+- **`apps/api/.env`** — `DATABASE_URL` (PostgreSQL connection string), `JWT_SECRET`, `JWT_EXPIRES_IN`, `SEED_DEV_DATA` (opt-in for the dev seed: `false` in the template, `true` locally; from B8 on, the seed refuses any other value, and always in production)
 - **`apps/web/.env`** — `API_URL` (where the Next.js server reaches the API; read at runtime, so one image works in every environment — the browser itself calls `/api` on the same origin)
 
 Sign-in provider settings (e.g. Google) are added together with the sign-in feature.
