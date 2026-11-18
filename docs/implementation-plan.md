@@ -23,7 +23,7 @@ Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then 
 9. ~~**Environment config** — one `.env.example` per app: `apps/api` (DATABASE_URL, JWT settings) and `apps/web` (API_URL)~~ ✅
 10. ~~**Turborepo pipelines** — configure `turbo.json` for `build`, `dev`, `lint`, `test` tasks with correct dependency graph~~ ✅
 
-> **Phase A completed** — all 10 steps done and verified. Commits `d902130` through `3d2a049`.
+> **Phase A completed** — all 10 steps done and verified. Commits `b70a9da` through `8bbcdbb`.
 
 **Verification:**
 
