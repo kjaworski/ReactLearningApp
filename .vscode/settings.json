@@ -1,7 +1,8 @@
 {
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "git.addAICoAuthor": "off",
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
