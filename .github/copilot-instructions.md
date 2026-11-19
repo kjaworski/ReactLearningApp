@@ -159,6 +159,8 @@ Consider:
 
 Never introduce secrets or credentials into source control.
 
+Never add a `Co-authored-by` trailer for GitHub Copilot or any other AI tool to commit messages.
+
 Avoid unnecessary abstractions, infrastructure and technologies that do not provide meaningful value to the application or learning objectives.
 
 ## 10. Toolchain and environment
