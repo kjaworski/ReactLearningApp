@@ -78,6 +78,10 @@ Technical decisions made during project scaffolding (Phase A). Each entry captur
 - pnpm also switches itself to the `packageManager` version and records it in `pnpm-lock.yaml` (`packageManagerDependencies`); no Corepack needed (it is no longer bundled with Node.js)
 - The same file can pin the tools of later phases (Terraform, kubectl, Helm)
 
+**Consequences:**
+
+- Prisma 7.10 lists Node.js 24 as its newest supported version, so on 26 its install script prints a warning during `pnpm install` ("Prisma only supports Node.js versions 20.19+, 22.12+, 24.0+"); the install continues. Prisma 8 supports Node.js 26 — revisit when it's stable (ADR-3)
+
 **Alternatives considered:**
 
 - Volta — unmaintained; its README recommends mise. It also reads only the nearest `package.json`, so every package would need `"volta": { "extends": "../../package.json" }`
