@@ -338,7 +338,7 @@ Cross-cutting decisions about how the app is checked, built, and deployed. CI st
 
 ## ADR-17: CI/CD on GitHub Actions
 
-**Decision:** GitHub Actions checks every push to `main` and every pull request — format, lint, build, tests. Planned: the first workflow is step CI-1. Post-MVP, deployments run on GitHub Actions too and sign in to AWS and Azure with OpenID Connect (OIDC).
+**Decision:** GitHub Actions checks every push to `main` and every pull request — format, lint, build, tests — with the workflow `.github/workflows/ci.yml` (step CI-1). Post-MVP, deployments run on GitHub Actions too and sign in to AWS and Azure with OpenID Connect (OIDC).
 
 **Why:**
 
@@ -352,9 +352,14 @@ Cross-cutting decisions about how the app is checked, built, and deployed. CI st
 
 - CI only verifies: it runs check-only commands (`prettier --check`, ESLint without `--fix`) and reports the result; fixing happens locally (editor, pre-commit hook). It never commits — its read-only token couldn't push anyway
 - The `GITHUB_TOKEN` gets `permissions: contents: read` by default; only deploy jobs add `id-token: write`, which OIDC needs
+- The checkout step doesn't keep the token (`persist-credentials: false`): later steps run third-party code — the install scripts of dependencies — which could otherwise read it from the Git configuration
 - Tool versions come from the repository, not from the workflow: `pnpm/action-setup` reads `packageManager`, and `actions/setup-node` reads Node.js from `mise.toml` (`node-version-file: mise.toml`, supported since setup-node v7.1.0)
 - pnpm installs with a frozen lockfile automatically when it detects CI
-- Third-party actions are locked to exact commits — a workflow dependency lockfile (`gh actions-lock`) or full-length commit SHAs — and Dependabot keeps them current
+- The pnpm store is cached by `actions/setup-node` (`cache: pnpm`), not by `pnpm/action-setup`, whose cache prunes old packages only when the action runs the install itself. A pull request's cache can't be restored on `main`, so a pull request can't plant packages that `main` would install (cache poisoning)
+- A newer commit on a pull request cancels the pull request's older run (`concurrency`). The group is keyed by the pull request's number, not its branch, because branch names can repeat across forks; runs on `main` are never cancelled, so every commit there keeps its result
+- The job's timeout is a few times its usual duration (`timeout-minutes`): a hung step fails within minutes instead of after GitHub's default of 6 hours
+- Turborepo's and Next.js' anonymous usage telemetry is off in CI (`TURBO_TELEMETRY_DISABLED`, `NEXT_TELEMETRY_DISABLED`): CI runs aren't developer usage, and the logs get shorter
+- Third-party actions are locked to exact commits — a workflow dependency lockfile (`gh actions-lock`) or full-length commit SHAs — and Dependabot keeps them current (from CI-2)
 - Deployment secrets and approvals belong to GitHub environments, not to repository-wide secrets
 
 **Security note:** the repository is public, so anyone can open a pull request. Workflows triggered by pull requests from forks get a read-only token and no secrets; `pull_request_target` must never be combined with checking out the pull request's code.

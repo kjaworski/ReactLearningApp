@@ -1,5 +1,7 @@
 # Personal & Household Finance Manager
 
+[![CI](https://github.com/kjaworski/ReactLearningApp/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/kjaworski/ReactLearningApp/actions/workflows/ci.yml?query=branch%3Amain)
+
 A full-stack web application for tracking personal and household finances, built with a modern TypeScript monorepo architecture.
 
 It is also a learning project: full-stack development, cloud (AWS, Azure, Kubernetes), software architecture, security, and AI — learned by building this app ([implementation plan](docs/implementation-plan.md)).
@@ -14,6 +16,7 @@ It is also a learning project: full-stack development, cloud (AWS, Azure, Kubern
 | Shared   | TypeScript 6.0, shared types package                         |
 | Monorepo | pnpm 12, Turborepo 2.11                                      |
 | Quality  | ESLint 10, Prettier 3.10, Husky 9 + lint-staged 17           |
+| CI       | GitHub Actions — format, lint, build, test                   |
 
 Why each tool was chosen, the module structure, CI, infrastructure as code, and the deployment options on AWS, Azure, and AKS: [docs/tech-stack.md](docs/tech-stack.md). Architecture decisions: [docs/architecture.md](docs/architecture.md).
 
