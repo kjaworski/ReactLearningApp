@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then frontend. Start with monorepo scaffolding → Prisma schema → NestJS modules (identity → transaction → reporting) → Next.js frontend → polish. Each phase is independently verifiable. A GitHub Actions workflow will check every push; it isn't set up yet — CI-1 is the next step. Each phase also has a learning focus on architecture and security; AI comes with the Phase 3–4 features (Learning focus, below).
+Build the MVP in 7 phases, backend-first (familiar territory as .NET dev), then frontend. Start with monorepo scaffolding → Prisma schema → NestJS modules (identity → transaction → reporting) → Next.js frontend → polish. Each phase is independently verifiable. A GitHub Actions workflow checks every push to `main` and every pull request (Continuous Integration, below). Each phase also has a learning focus on architecture and security; AI comes with the Phase 3–4 features (Learning focus, below).
 
 ---
 
@@ -114,7 +114,7 @@ Left to the application on purpose (Phase D): that `Transaction.userId` is a mem
 
 **Steps:**
 
-- **CI-1** — First workflow, `.github/workflows/ci.yml`: on every push to `main` and every pull request, install dependencies, then run `pnpm format:check`, `pnpm lint`, `pnpm build`, `pnpm test` — _next_
+- ~~**CI-1** — First workflow, `.github/workflows/ci.yml`: on every push to `main` and every pull request, install dependencies, then run `pnpm format:check`, `pnpm lint`, `pnpm build`, `pnpm test`~~ ✅ [PR #1](https://github.com/kjaworski/ReactLearningApp/pull/1)
 - **CI-2** — Keep the repository and the workflow safe: turn on GitHub's free security features for public repositories (Dependabot alerts and security updates, CodeQL code scanning with the default setup, secret scanning with push protection); Dependabot version updates for GitHub Actions; actions locked to exact commits (`gh actions-lock`, or full-length SHAs); optionally a ruleset on `main` that requires the CI check (changes then go through pull requests)
 - **CI-3** — With C3: the e2e smoke test against a PostgreSQL 18 service container, after `prisma migrate deploy`. The job runs the API package's script directly (`pnpm --filter @finance/api test:e2e`) — Turborepo isn't involved, so the job's `DATABASE_URL` reaches the tests as is. If the task later runs through `turbo run`, `turbo.json` has to declare `DATABASE_URL` (Turborepo's strict mode passes a task only the variables it declares). Locally, e2e tests that write data (from C4 on) use a separate test database, never the development one
 - **CI-4** — With the Docker step (post-MVP): build the API and web images
@@ -126,19 +126,20 @@ Left to the application on purpose (Phase D): that `Transaction.userId` is a mem
 - `lint` is check-only in every package; `apps/api` also has `lint:fix` for local use. CI runs `pnpm lint`
 - Warnings don't fail ESLint: `apps/api` sets `no-floating-promises` and `no-unsafe-argument` to `warn`, so CI would list them and stay green. To fail on them, raise them to `error` or add `--max-warnings 0` to `lint`
 - Feedback: a failed check on the commit or pull request, the log of the failing step, and a GitHub notification (Settings → Notifications → Actions — can be limited to failed runs). `actions/setup-node` also registers problem matchers that turn ESLint and TypeScript errors into annotations on the file and line
-- A `concurrency` group cancels a run when a newer commit arrives on the same branch
-- Versions come from the repository, not from the workflow: `pnpm/action-setup` reads `packageManager`; `actions/setup-node` with `node-version-file: mise.toml` reads the Node.js pin — v7.1.0 or later, the first version that understands `mise.toml`. `cache: pnpm` caches the pnpm store
+- A `concurrency` group cancels a pull request's run when a newer commit arrives on that pull request; runs on `main` are never cancelled (how the group is keyed: architecture.md ADR-17)
+- Versions come from the repository, not from the workflow: `pnpm/action-setup` reads `packageManager`; `actions/setup-node` with `node-version-file: mise.toml` reads the Node.js pin — v7.1.0 or later, the first version that understands `mise.toml`
+- `cache: pnpm` caches the pnpm store, keyed by the lockfile's hash. Measured in PR #1, it isn't faster yet: restoring the 273 MB store took 3–19 s, while most of the install (about 5 s) is pnpm's supply-chain check of the lockfile, which a warm store doesn't skip. It stays so the cache scopes can be seen at work (architecture.md ADR-17): `main`'s first run can't restore a pull request's cache, so it misses and saves its own
 - In CI, `pnpm install` refuses to change the lockfile (frozen lockfile is automatic)
 - From C2 on, the API imports the generated Prisma client, which is gitignored: CI then has to run `prisma generate` before lint, build, and test — for example as a Turborepo task they depend on
-- Later, when builds get slow: cache Turborepo's `.turbo` folder with `actions/cache`
-- When it's green: a status badge and a CI row in the README
+- Later, when builds get slow: cache Turborepo's `.turbo` folder with `actions/cache`, and pnpm's metadata folder (`pnpm cache path`), which records the lockfiles that already passed the supply-chain check, so pnpm can skip it
+- ~~When it's green: a status badge and a CI row in the README~~ ✅
 
 **Verification:**
 
 - A push to `main` shows a green check on the commit; the Actions tab shows the log of each step
-- A pull request with a formatting or lint error fails the check, and the run leaves the code unchanged
-- A lint error appears as an annotation on the file and line — if not, check whether Turborepo's `package:task:` prefix in front of each log line is the reason (`--log-prefix=none`)
-- The workflow file contains no Node.js or pnpm version
+- ~~A pull request with a formatting or lint error fails the check, and the run leaves the code unchanged~~ ✅
+- ~~A lint error appears as an annotation on the file and line~~ ✅ — on GitHub Actions, Turborepo groups each task's output instead of putting a `package:task:` prefix in front of every line, so `actions/setup-node`'s problem matcher reads ESLint's own output
+- ~~The workflow file contains no Node.js or pnpm version~~ ✅
 
 **Relevant files:** `.github/workflows/ci.yml`, `.github/dependabot.yml`, `README.md` (badge)
 
@@ -170,7 +171,7 @@ Left to the application on purpose (Phase D): that `Transaction.userId` is a mem
 
 **Progress** — Phase C is built in small learning steps:
 
-- **C1** — Configuration: `@nestjs/config` loads `apps/api/.env`; the app refuses to start when a required variable is missing — _after CI-1_
+- **C1** — Configuration: `@nestjs/config` loads `apps/api/.env`; the app refuses to start when a required variable is missing — _next_
 - **C2** — Database access: `PrismaModule` + `PrismaService`; the first endpoint, `GET /api/health`, checks the database connection. Every route gets the `/api` prefix (`app.setGlobalPrefix('api')`), so each environment can route by path (architecture.md ADR-19); the endpoint paths below leave it out
 - **C3** — Logging, API docs, and HTTP hardening: Pino logging, Swagger UI at `/api/docs`, security headers (Helmet); the scaffold e2e test (still expects `GET /` → "Hello World!") becomes a `GET /api/health` smoke test
 - **C3a** — Vertical checkpoint: the Next.js home page shows the result of `GET /api/health` twice — fetched on the server through `API_URL` and in the browser through `/api` (a development-only rewrite in `next.config.ts`). The page renders at request time — `await connection()` (from `next/server`) before it reads `API_URL`; without it, `next build` prerenders the page, reading `API_URL` and calling the API during the build, and one image could no longer serve every environment (ADR-19). The first end-to-end path: browser → Next.js → NestJS → PostgreSQL

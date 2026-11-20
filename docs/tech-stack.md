@@ -94,14 +94,14 @@
 | **Git hooks**              | **Husky + lint-staged**                            | Pre-commit linting/formatting                                                                                                             |
 | **API docs**               | **Swagger (OpenAPI)** via `@nestjs/swagger`        | Auto-generated API documentation from decorators                                                                                          |
 | **Containerization**       | **Docker + Docker Compose**                        | Local PostgreSQL via Docker Compose; container images for deployment (post-MVP)                                                           |
-| **CI/CD**                  | **GitHub Actions** — planned (CI-1)                | Will check every push and pull request, and later deploy to AWS and Azure with OIDC instead of stored cloud keys (architecture.md ADR-17) |
+| **CI/CD**                  | **GitHub Actions**                                 | Checks every push and pull request; it will later deploy to AWS and Azure with OIDC instead of stored cloud keys (architecture.md ADR-17) |
 | **Infrastructure as code** | **Terraform** (AWS, AKS) + **Bicep** (Azure)       | Every cloud environment is created from code — post-MVP (Infrastructure as code below, architecture.md ADR-18)                            |
 
-### Continuous integration — GitHub Actions (planned)
+### Continuous integration — GitHub Actions
 
-> Not set up yet: the first workflow is step CI-1 in implementation-plan.md. Rules and rationale: architecture.md ADR-17.
+> The workflow: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), added in step CI-1 (implementation-plan.md). Rules and rationale: architecture.md ADR-17.
 
-The workflow will run the checks a developer runs before pushing — `pnpm format:check`, `pnpm lint`, `pnpm build`, `pnpm test` — on every push to `main` and every pull request, then grow with the app: e2e tests against a PostgreSQL service container, Docker image builds, deployments.
+The workflow runs the checks a developer runs before pushing — `pnpm format:check`, `pnpm lint`, `pnpm build`, `pnpm test` — on every push to `main` and every pull request. It grows with the app: e2e tests against a PostgreSQL service container, Docker image builds, deployments.
 
 **Azure Pipelines → GitHub Actions** (quick reference):
 
