@@ -136,7 +136,7 @@ Left to the application on purpose (Phase D): that `Transaction.userId` is a mem
 
 **Verification:**
 
-- A push to `main` shows a green check on the commit; the Actions tab shows the log of each step
+- ~~A push to `main` shows a green check on the commit; the Actions tab shows the log of each step~~ ✅
 - ~~A pull request with a formatting or lint error fails the check, and the run leaves the code unchanged~~ ✅
 - ~~A lint error appears as an annotation on the file and line~~ ✅ — on GitHub Actions, Turborepo groups each task's output instead of putting a `package:task:` prefix in front of every line, so `actions/setup-node`'s problem matcher reads ESLint's own output
 - ~~The workflow file contains no Node.js or pnpm version~~ ✅
